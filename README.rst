@@ -5,6 +5,7 @@ This is a library for running Finite State Automata (FSA)
 on bound and unbound streams of event.
 
 It supports
+
 * non-determininistic FSA's,
 * noise-tolerant FSA's (i.e. ignoring some or all non-relevant events),
 * overlapping matched,

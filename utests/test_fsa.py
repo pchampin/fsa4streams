@@ -1,4 +1,4 @@
-from fsa import FSA, LOG
+from fsa4streams.fsa import FSA, LOG
 
 from nose.tools import assert_equal, assert_set_equal
 from os.path import dirname, join

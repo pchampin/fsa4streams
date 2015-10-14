@@ -1,6 +1,6 @@
 from nose.tools import eq_
 
-from fsa import FSA
+from fsa4streams import FSA
 
 class TestGlobalDefaults(object):
 

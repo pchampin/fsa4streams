@@ -212,19 +212,19 @@ class FSA(object):
             return
         assert otherid in pending
         other = pending[otherid]
-        LOG.debug('    it was inhibiting a token in %r', other['state'])
+        LOG.debug('    it was inhibiting a pending match in %r', other['state'])
         if is_match:
             del pending[otherid]
             for t in running.itervalues():
-                if t.get('inhinits') == otherid:
+                if t.get('inhibits') == otherid:
+                    LOG.debug('      as was a token in %r', t['state'])
                     del t['inhibits']
         else:
             if not [ t for t in running.itervalues() if t.get('inhibits') == otherid ]:
                 # 'other' is not inhibited anymore
                 del pending[otherid]
                 matches.append(other)
-                LOG.debug('    causing inhibited token in %r to match',
-                          other['state'])
+                LOG.debug('      making it an actual match')
 
 
     def feed(self, event):
@@ -277,15 +277,20 @@ class FSA(object):
             # this token *might* be a match
             # if no further transition leads to a match;
             if oldstate.terminal:
-                otherid = token.get('inhibit')
+                LOG.debug('    keeping a pending match')
+                otherid = token.get('inhibits')
                 if otherid:
                     # pending token is overriden by this new match
-                    del pending[otherid]
+                    previous = pending.pop(otherid)
+                    LOG.debug('      and dropping previous pending match in %r',
+                              previous['state'])
                     for t in running.itervalues():
-                        del t['inhibit']
+                        del t['inhibits']
                 # create new pending token
                 newid = uuid4().hex
-                pending[newid] = deepcopy(token)
+                pending_token = deepcopy(token)
+                assert 'inhibits' not in pending_token
+                pending[newid] = pending_token
                 token['inhibits'] = newid
 
             # pushing token through first transition
@@ -297,7 +302,6 @@ class FSA(object):
                 token['history_states'].append(oldstateid)
             else:
                 LOG.debug('      (silently)')
-
 
             # cloning token through other transitions (non-deterministic FSA)
             for transition in possible_transitions[1:]:
@@ -335,6 +339,7 @@ class FSA(object):
         for tokenid, token in running.items():
             token_state = self[token['state']]
             if token_state.terminal and len(token_state.transitions) == 0:
+                LOG.debug('  token now in %r (final)', token['state'])
                 self._delete_token(tokenid, token, token_state, running, pending, matches)
 
         self._tokens['clock'] = clock = clock+1
@@ -381,5 +386,5 @@ class FSA(object):
             matches = [ match for match in matches
                         if match['created'] == min_created ]
         self.reset()
-        LOG.debug('  returns %s matches', len(matches))
+        LOG.debug('  returns %s match(es)', len(matches))
         return matches

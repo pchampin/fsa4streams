@@ -283,7 +283,7 @@ def test_differ_match():
 
 
 def test_differ_match_tricky():
-    fsa = FSA.make_empty()
+    fsa = FSA.make_empty(allow_overlap=True)
     (fsa
      .add_state("start")
        .add_transition("a", "s1")
@@ -291,16 +291,33 @@ def test_differ_match_tricky():
        .add_transition("b", "s2f")
      .add_state("s2f", terminal=True)
        .add_transition("c", "s3")
+       .add_transition("c", "s7")
      .add_state("s3")
        .add_transition("d", "s4f")
      .add_state("s4f", terminal=True)
+       .add_transition("e", "s5")
+     .add_state("s5")
+       .add_transition("f", "s6f")
+     .add_state("s6f", terminal=True)
+     .add_state("s7")
+       .add_transition("h", "s8f")
+       .set_default_transition("s7", silent=True)
+     .add_state("s8f", terminal=True)
      .check_structure()
     )
     yield assert_matches, fsa, "ab", ["ab"]
     yield assert_matches, fsa, "abc", ["ab"]
-    yield assert_matches, fsa, "abce", ["ab"]
     yield assert_matches, fsa, "abcd", ["abcd"]
     yield assert_matches, fsa, "abcde", ["abcd"]
+    yield assert_matches, fsa, "abcdef", ["abcdef"]
+    yield assert_matches, fsa, "abcdefh", ["abcdef", "abch"], False
+    yield assert_matches, fsa, "abcdefz", ["abcdef"]
+    yield assert_matches, fsa, "abcdh", ["abcd", "abch"], False
+    yield assert_matches, fsa, "abcdhef", ["abcd", "abch"], False
+    yield assert_matches, fsa, "abcdz", ["abcd"]
+    yield assert_matches, fsa, "abce", ["ab"]
+    yield assert_matches, fsa, "abch", ["abch"]
+    yield assert_matches, fsa, "abchd", ["abch"]
 
 
 def test_regexp_matcher():

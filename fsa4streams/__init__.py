@@ -1,3 +1,3 @@
 from fsa import FSA
 
-__version__ = "0.1"
+__version__ = "0.2"

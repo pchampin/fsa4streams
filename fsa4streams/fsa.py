@@ -81,7 +81,7 @@ class FSA(object):
             if deftrans:
                 if state.max_noise != 0:
                     problems.append("State %r can not have both a default "
-                                    "transition and max_noise > 0")
+                                    "transition and max_noise > 0" % stateid)
                 transitions = chain(transitions, [deftrans])
             for transition in transitions:
                 if transition['target'] not in states:
@@ -203,22 +203,23 @@ class FSA(object):
         del running[tokenid]
         is_match = token_state.terminal
         if is_match:
-            LOG.debug('    and was removed (as a match)')
+            LOG.debug('    matched')
             matches.append(token)
         else:
-            LOG.debug('    and was removed')
+            LOG.debug('    was dropped')
         otherid = token.get('inhibits')
         if otherid is None:
             return
+        assert otherid in pending
         other = pending[otherid]
-        LOG.debug('    it was inhibiting a token on %r', other['state'])
+        LOG.debug('    it was inhibiting a token in %r', other['state'])
         if is_match:
             del pending[otherid]
             for t in running.itervalues():
                 if t.get('inhinits') == otherid:
                     del t['inhibits']
         else:
-            if not [ t for t in running if t.get('inhibits') == otherid ]:
+            if not [ t for t in running.itervalues() if t.get('inhibits') == otherid ]:
                 # 'other' is not inhibited anymore
                 del pending[otherid]
                 matches.append(other)
@@ -294,6 +295,9 @@ class FSA(object):
             if not possible_transitions[0].get('silent'):
                 token['history_events'].append(event)
                 token['history_states'].append(oldstateid)
+            else:
+                LOG.debug('      (silently)')
+
 
             # cloning token through other transitions (non-deterministic FSA)
             for transition in possible_transitions[1:]:
@@ -302,7 +306,6 @@ class FSA(object):
                 newtoken['state'] = transition['target']
                 newid = uuid4().hex
                 running[newid] = newtoken
-                LOG.debug('      %s', newid)
 
         # Create a new token for each transition of the 'start' state
         # that is satisfied by the current event.
@@ -369,6 +372,7 @@ class FSA(object):
         pending = self._tokens['pending']
         matches = []
         for tokenid, token in running.items():
+            LOG.debug('  token in %r', token['state'])
             token_state = self[token['state']]
             self._delete_token(tokenid, token, token_state,
                                running, pending, matches)

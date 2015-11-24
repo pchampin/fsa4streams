@@ -82,6 +82,30 @@ def test_a_b_star():
 
 
 def test_noise():
+    fsa = FSA.make_empty()
+    (fsa
+     .add_state("start")
+       .add_transition("a", "s1")
+     .add_state("s1", max_noise=2)
+       .add_transition("a", "s2")
+     .add_state("s2", max_noise=2)
+       .add_transition("a", "finish")
+     .add_state("finish", terminal=True)
+     .check_structure()
+    )
+    yield assert_matches, fsa, "aaa", ["aaa"]
+    yield assert_matches, fsa, "abaa", ["aaa"]
+    yield assert_matches, fsa, "abbaa", ["aaa"]
+    yield assert_matches, fsa, "abbbaa", []
+    yield assert_matches, fsa, "aaba", ["aaa"]
+    yield assert_matches, fsa, "aabba", ["aaa"]
+    yield assert_matches, fsa, "aabbba", []
+    yield assert_matches, fsa, "ababa", ["aaa"]
+    yield assert_matches, fsa, "abbaba", ["aaa"]
+    yield assert_matches, fsa, "ababba", ["aaa"]
+    yield assert_matches, fsa, "abbabba", ["aaa"]
+
+def test_noise_global():
     fsa = FSA.make_empty(max_noise=3)
     (fsa
      .add_state("start")

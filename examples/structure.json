@@ -1,5 +1,4 @@
 {
-    "max_noise": 4,
     "allow_overlap": true,
     "states": {
         "start": {

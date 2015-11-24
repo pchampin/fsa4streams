@@ -108,7 +108,7 @@ class FSA(object):
 
     @property
     def max_noise(self):
-        return self._structure.get('max_noise', 0)
+        return self._structure.get('max_noise')
     @max_noise.setter
     def max_noise(self, value):
         if type(value) is not int  or  value < 0:
@@ -265,7 +265,8 @@ class FSA(object):
                 token['noise_state'] += 1
                 token['noise_global'] += 1
                 if token['noise_state'] > oldstate.max_noise \
-                or token['noise_global'] > self.max_noise:
+                or self.max_noise is not None \
+                and token['noise_global'] > self.max_noise:
                     self._delete_token(tokenid, token, oldstate, running, pending, matches)
                 continue
 

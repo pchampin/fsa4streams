@@ -43,15 +43,16 @@ class FSA(object):
 
     @classmethod
     def make_empty(cls, **kw):
-        "TODO doc: must call check_structure in the end"
+        "TODO doc: must call :meth:`check_structure` in the end"
         data = { 'states': {}}
         data.update(kw)
         return cls(data, False)
 
     def add_state(self, stateid, **kw):
         """TODO doc
+
         IMPORTANT: 'target' may not exist yet, so it not checked.
-        Hence, check_structure should be called in the end.
+        Hence, :meth:`check_structure` should be called in the end.
         """
         if stateid in self._structure['states']:
             raise ValueError("State %r already present in FSA" % stateid)

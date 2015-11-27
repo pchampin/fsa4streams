@@ -17,6 +17,8 @@ It supports
 * overlapping matched,
 * extensible matching functions for transitions.
 
+It is available at https://github.com/pchampin/fsa4streams .
+
 .. rubric:: Contents
 
 .. toctree::

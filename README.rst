@@ -6,6 +6,7 @@ on bound and unbound streams of event.
 
 An online documentation is available at:
 http://fsa4streams.readthedocs.org/en/latest/?badge=latest
+
 .. image:: https://readthedocs.org/projects/fsa4streams/badge/?version=latest
    :target: http://fsa4streams.readthedocs.org/en/latest/?badge=latest
    :alt: Documentation Status

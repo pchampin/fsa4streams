@@ -153,3 +153,8 @@ Example
       s2 [label="s2 [4]"]
       success [shape=doublecircle]
       error [shape=doublecircle]
+
+.. todo::
+
+  May be also describe the format of the JSON files used to save tokens?...
+

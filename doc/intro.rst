@@ -2,9 +2,24 @@
  Introduction
 ==============
 
-.. warning::
+.. todo::
 
-   TODO edit this section.
+   * explain how to use the library
+
+     - demonstrating in particular the various ways to build noise-tolerant FSA's
+       (silent transitions, default transitions, global and state max_noise),
+
+     - explaining the notion of token,
+
+     - explaining the role of `finish()`,
+       and why a token on a final state may not immediately return a match;
+
+   * the structure of tokens (as returned by `feed()` and `feed_all()`;
+
+   * some of the design choices of the library,
+
+     - especially why an empty sequence is never a match,
+       even if the 'start' state is marked as terminal.
 
 
 Bits and pieces

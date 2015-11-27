@@ -17,7 +17,7 @@ Module ``state``
    :undoc-members:
 
 Module ``matcher``
-================
+==================
 
 .. automodule:: fsa4streams.matcher
    :members:

@@ -62,6 +62,12 @@ class FSA(object):
 
     def check_structure(self, raises=True):
         problems = []
+
+        default_matcher = self._structure.get('default_matcher')
+        if default_matcher is not None \
+        and default_matcher not in matcher_directory:
+            problems.append("Unsupported default matcher %r" % default_matcher)
+
         states = self._structure['states']
         if not 'start' in states:
             problems.append("No start state")
@@ -131,6 +137,18 @@ class FSA(object):
     def allow_overlap(self):
         del self._structure['allow_overlap']
 
+    @property
+    def default_matcher(self):
+        return self._structure.get('default_matcher')
+    @default_matcher.setter
+    def default_matcher(self, value):
+        if type(value) not in matcher_directory:
+            raise ValueError('FSA.default_matcher must be in matcher.DIRECTORY')
+        self._structure['default_matcher'] = value
+    @default_matcher.deleter
+    def default_matcher(self):
+        del self._structure['default_matcher']
+
     def export_structure_as_dict(self):
         return deepcopy(self._structure)
 
@@ -193,7 +211,7 @@ class FSA(object):
     # running the FSA
 
     def match(self, transition, event, token):
-        transition_type = transition.get('matcher')
+        transition_type = transition.get('matcher') or self.default_matcher
         if transition_type is None:
             return transition['condition'] == event
         else:

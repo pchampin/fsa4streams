@@ -401,3 +401,21 @@ def test_examples():
     with open(join(dir, "tokens.json")) as f:
         fsa.load_tokens_from_file(f)
     yield assert_outcomes, fsa, "d", ["success", "error"], False
+
+def test_default_matcher():
+    fsa = FSA.make_empty(default_matcher="regexp")
+    (fsa
+     .add_state("start")
+       .add_transition("[a-z]", "finish")
+     .add_state("finish", terminal=True)
+     .check_structure()
+    )
+    assert_matches(fsa, ["[a-z]"], [])
+    assert_matches(fsa, ["A"], [])
+    assert_matches(fsa, ["M"], [])
+    assert_matches(fsa, ["Z"], [])
+    assert_matches(fsa, ["1"], [])
+    assert_matches(fsa, ["!"], [])
+    assert_matches(fsa, ["a"], ["a"])
+    assert_matches(fsa, ["m"], ["m"])
+    assert_matches(fsa, ["z"], ["z"])

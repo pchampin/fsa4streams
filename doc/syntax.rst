@@ -49,6 +49,17 @@ The FSA is represented by a JSON object, with the following attributes:
 
    NB: it can not have `~fsa.transitions`:attr:.
 
+.. attribute:: fsa.default_matcher
+
+   A string (optional).
+
+   If provided,
+   it indicates the function used to compare incoming events to the `~transition.condition`:attr:.
+   It must be a key present in `fsa4streams.matcher.DIRECTORY`:py:data:.
+
+   If not provided,
+   a simple matcher will be used,
+   checking whether the event is equal to the `transition.condition`:attr:.
 
 State
 =====
@@ -117,9 +128,10 @@ Every transition is represented by a JSON object, with the following attributes:
    If provided,
    it indicates the function used to compare incoming events to the `~transition.condition`:attr:.
    It must be a key present in `fsa4streams.matcher.DIRECTORY`:py:data:.
+   the `~transition.condition`:attr: will simply be tested for equality with the event. 
 
    If not provided,
-   the `~transition.condition`:attr: will simply be tested for equality with the event. 
+   the `~fsa.default_matcher`:attr: will be used.
 
 .. attribute:: transition.silent
 

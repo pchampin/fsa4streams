@@ -125,7 +125,7 @@ class FSA(object):
     @allow_overlap.setter
     def allow_overlap(self, value):
         if type(value) is not bool:
-            raise ValueError('FSA.overlap must be a bool')
+            raise ValueError('FSA.allow_overlap must be a bool')
         self._structure['allow_overlap'] = value
     @allow_overlap.deleter
     def allow_overlap(self):

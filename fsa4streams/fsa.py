@@ -142,7 +142,7 @@ class FSA(object):
         return self._structure.get('default_matcher')
     @default_matcher.setter
     def default_matcher(self, value):
-        if type(value) not in matcher_directory:
+        if value not in matcher_directory:
             raise ValueError('FSA.default_matcher must be in matcher.DIRECTORY')
         self._structure['default_matcher'] = value
     @default_matcher.deleter

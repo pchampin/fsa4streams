@@ -403,13 +403,14 @@ def test_examples():
     yield assert_outcomes, fsa, "d", ["success", "error"], False
 
 def test_default_matcher():
-    fsa = FSA.make_empty(default_matcher="regexp")
+    fsa = FSA.make_empty()
     (fsa
      .add_state("start")
        .add_transition("[a-z]", "finish")
      .add_state("finish", terminal=True)
      .check_structure()
     )
+    fsa.default_matcher = "regexp"
     assert_matches(fsa, ["[a-z]"], [])
     assert_matches(fsa, ["A"], [])
     assert_matches(fsa, ["M"], [])

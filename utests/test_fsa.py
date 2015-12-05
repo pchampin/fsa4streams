@@ -420,3 +420,31 @@ def test_default_matcher():
     assert_matches(fsa, ["a"], ["a"])
     assert_matches(fsa, ["m"], ["m"])
     assert_matches(fsa, ["z"], ["z"])
+
+def test_simultaneous_matches():
+    fsa = FSA.make_empty()
+    (fsa
+     .add_state("start")
+       .add_transition("a", "s1")
+       .add_transition("a", "s2")
+     .add_state("s1")
+       .add_transition("b", "s3")
+     .add_state("s2", max_noise=1)
+       .add_transition("c", "s4")
+     .add_state("s3", max_noise=1)
+       .add_transition("d", "finish")
+     .add_state("s4")
+       .add_transition("d", "finish")
+     .add_state("finish", terminal=True)
+     .check_structure()
+    )
+    fsa.allow_overlap = True
+    matches = fsa.feed_all("abcd")
+    assert_equal(2, len(matches))
+    
+    fsa.reset()
+    fsa.allow_overlap = False
+    matches = fsa.feed_all("abcd")
+    assert_equal(1, len(matches))
+    
+

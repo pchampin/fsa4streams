@@ -374,11 +374,13 @@ class FSA(object):
                         del d[tokenid]
                         LOG.debug('  dropping token %r to prevent overlap',
                                   tokenid)
-            min_created = min( match['created'] for match in matches)
-            matches = [ match for match in matches
-                        if match['created'] == min_created ]
-            LOG.debug("to prevent overlap, only %s matches kept",
-                      len(matches))
+            if len(matches) > 1:
+                min_created = min( match['created'] for match in matches)
+                matches = [ match for match in matches
+                            if match['created'] == min_created ]
+                if len(matches) > 1:
+                    matches = matches[:1]
+                LOG.debug("to prevent overlap, only 1 match kept")
 
         return matches
 

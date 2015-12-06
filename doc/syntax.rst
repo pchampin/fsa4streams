@@ -128,7 +128,6 @@ Every transition is represented by a JSON object, with the following attributes:
    If provided,
    it indicates the function used to compare incoming events to the `~transition.condition`:attr:.
    It must be a key present in `fsa4streams.matcher.DIRECTORY`:py:data:.
-   the `~transition.condition`:attr: will simply be tested for equality with the event. 
 
    If not provided,
    the `~fsa.default_matcher`:attr: will be used.

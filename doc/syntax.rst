@@ -110,7 +110,7 @@ Every transition is represented by a JSON object, with the following attributes:
 
 .. attribute:: transition.condition
 
-   A string (required).
+   Any JSON object (required).
 
    The condition is compared to incoming events to check if the transition can be used.
    See also `transition.matcher`:attr:.

@@ -344,28 +344,6 @@ def test_differ_match_tricky():
     yield assert_matches, fsa, "abchd", ["abch"]
 
 
-def test_regexp_matcher():
-    fsa = FSA.make_empty()
-    (fsa
-     .add_state("start")
-       .add_transition("[b-df-hj-np-tv-xz]", "s1", matcher="regexp")
-     .add_state("s1")
-       .add_transition("[aeiouy]", "s2", matcher="regexp")
-     .add_state("s2")
-       .add_transition("[b-df-hj-np-tv-xz]", "finish", matcher="regexp")
-     .add_state("finish", terminal=True)
-     .check_structure()
-    )
-    yield assert_matches, fsa, "a", []
-    yield assert_matches, fsa, "ab", []
-    yield assert_matches, fsa, "b", []
-    yield assert_matches, fsa, "ba", []
-    yield assert_matches, fsa, "bac", ['bac']
-    yield assert_matches, fsa, "def", ['def']
-    yield assert_matches, fsa, "bace", ['bac']
-    yield assert_matches, fsa, "baec", []
-
-
 def test_import_export_tokens():
     fsa = FSA.make_empty(max_noise=1, allow_overlap=True)
     (fsa

@@ -20,10 +20,11 @@ def application(environ, start_response):
             raise ValueError("'structure' and 'events' are required")
 
         fsa = FSA.from_str(structure)
-        try:
+        if events[0] in '"{[':
             events = json.loads(events)
-        except ValueError:
-            pass # let events stand for itself as a string
+        else:
+            events = events.split(" ")
+
         matches = fsa.feed_all(events)
 
         start_response("200 Ok", [

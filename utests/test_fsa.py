@@ -424,5 +424,30 @@ def test_simultaneous_matches():
     fsa.allow_overlap = False
     matches = fsa.feed_all("abcd")
     assert_equal(1, len(matches))
-    
 
+@skip("problem raised by issue #2")
+def test_non_trivial_greedy():
+    fsa = FSA.from_dict({
+        "allow_overlap": True,
+        "states": {
+            "start": {
+                "transitions": [
+                    { "condition": "a", "target": "s2" },
+                    { "condition": "a", "target": "s1" },
+                ],
+            },
+            "s1": {
+                "transitions": [
+                    { "condition": "b", "target": "s1" },
+                    { "condition": "b", "target": "s2" },
+                ],
+            },
+            "s2": {
+                "terminal": True,
+            }
+        }
+    })
+    matches = fsa.feed_all("abbb")
+    assert_equal(1, len(matches))
+    assert_equal(["a", "b", "b", "b"], matches[0]['history_events'])
+    

@@ -425,7 +425,6 @@ def test_simultaneous_matches():
     matches = fsa.feed_all("abcd")
     assert_equal(1, len(matches))
 
-@skip("problem raised by issue #2")
 def test_non_trivial_greedy():
     fsa = FSA.from_dict({
         "allow_overlap": True,

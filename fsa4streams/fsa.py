@@ -229,18 +229,17 @@ class FSA(object):
         otherid = token.get('inhibits')
         if otherid is None:
             return
-        assert otherid in pending
-        other = pending[otherid]
+        other = pending.get(otherid)
+        if other is None:
+            # it has already been deleted
+            return
         LOG.debug('    it was inhibiting a pending match in %r', other['state'])
         if is_match:
             del pending[otherid]
-            for t in running.itervalues():
-                if t.get('inhibits') == otherid:
-                    LOG.debug('      as was a token in %r', t['state'])
-                    del t['inhibits']
         else:
             if not [ t for t in running.itervalues() if t.get('inhibits') == otherid ]:
-                # 'other' is not inhibited anymore
+                # noone else was inhibiting 'other',
+                # so 'other' is not inhibited anymore
                 del pending[otherid]
                 matches.append(other)
                 LOG.debug('      making it an actual match')
@@ -298,18 +297,17 @@ class FSA(object):
             # if no further transition leads to a match;
             if oldstate.terminal:
                 LOG.debug('    keeping a pending match')
-                otherid = token.get('inhibits')
+                otherid = token.pop('inhibits', None)
                 if otherid:
                     # pending token is overriden by this new match
-                    previous = pending.pop(otherid)
-                    LOG.debug('      and dropping previous pending match in %r',
-                              previous['state'])
-                    for t in running.itervalues():
-                        del t['inhibits']
+                    previous = pending.pop(otherid, None)
+                    # NB: inhibited token may have been deleted already
+                    if previous is not None:
+                        LOG.debug('      and dropping previous pending match in %r',
+                                  previous['state'])
                 # create new pending token
                 newid = uuid4().hex
                 pending_token = deepcopy(token)
-                assert 'inhibits' not in pending_token
                 pending[newid] = pending_token
                 token['inhibits'] = newid
 
@@ -332,7 +330,8 @@ class FSA(object):
                 running[newid] = newtoken
 
         # Create a new token for each transition of the 'start' state
-        # that is satisfied by the current event.
+        # that is satisfied by the current event
+        # (unless an existing token just left the start state).
         if not skip_create:
             starting_transitions = [ t for t in self['start'].transitions
                                      if self.match(t, event, None) ]
@@ -355,12 +354,33 @@ class FSA(object):
                     newid = uuid4().hex
                     running[newid] = newtoken
 
-        # Immediately match any token on a final state that has no transition.
+        # Immediately handle tokens on a final state with no transition
+        # (no need to wait for the next event to do that...)
+        # This may not result to an immediate match if another running token
+        # has the exact same history...
         for tokenid, token in running.items():
             token_state = self[token['state']]
             if token_state.terminal and len(token_state.transitions) == 0:
                 LOG.debug('  token now in %r (final)', token['state'])
-                self._delete_token(tokenid, token, token_state, running, pending, matches)
+                inhibited = False
+                for otherid, other in running.items():
+                    if other is token:
+                        continue
+                    if other['history_events'] == token['history_events']:
+                        inhibitedid = other.get('inhibits')
+                        if inhibitedid is not None:
+                            dropped = pending.pop(inhibitedid, None)
+                            if dropped:
+                                LOG.debug('    (dropping older pending state in %r)',
+                                          dropped['state'])
+                        other['inhibits'] = tokenid
+                        inhibited = True
+                        LOG.debug('    is kept pending (inhibited by token in %r)', other['state'])
+                if inhibited:
+                    pending[tokenid] = token
+                    del running[tokenid]
+                else:
+                    self._delete_token(tokenid, token, token_state, running, pending, matches)
 
         self._tokens['clock'] = clock = clock+1
 

@@ -450,3 +450,60 @@ def test_non_trivial_greedy():
     assert_equal(1, len(matches))
     assert_equal(["a", "b", "b", "b"], matches[0]['history_events'])
     
+def test_even_less_trivial_greedy():
+    fsa = FSA.from_dict({
+        "allow_overlap": True,
+        "states": {
+            "start": {
+                "transitions": [
+                    { "condition": "a", "target": "s1" },
+                    { "condition": "a", "target": "s2" },
+                ],
+            },
+            "s1": {
+                "terminal": True,
+            },
+            "s2": {
+                "transitions": [
+                    { "condition": "b", "target": "s2" },
+                    { "condition": "b", "target": "s3" },
+                ],
+            },
+            "s3": {
+                "terminal": True,
+            }
+        }
+    })
+    matches = fsa.feed_all("abbb")
+    assert_equal(2, len(matches))
+    histories = [ m['history_events'] for m in matches ]
+    assert ["a"] in histories
+    assert ["a", "b", "b", "b"] in histories
+
+def test_redundant_paths():
+    fsa = FSA.from_dict({
+        "allow_overlap": True,
+        "states": {
+            "start": {
+                "transitions": [
+                    { "condition": "a", "target": "s1" },
+                    { "condition": "a", "target": "s2" },
+                ],
+            },
+            "s1": {
+                "transitions": [
+                    { "condition": "b", "target": "s3" },
+                ],
+            },
+            "s2": {
+                "transitions": [
+                    { "condition": "b", "target": "s3" },
+                ],
+            },
+            "s3": {
+                "terminal": True,
+            }
+        }
+    })
+    matches = fsa.feed_all("ab")
+    assert_equal(1, len(matches))

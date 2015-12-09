@@ -234,7 +234,11 @@ class FSA(object):
             # it has already been deleted
             return
         LOG.debug('    it was inhibiting a pending match in %r', other['state'])
-        if is_match:
+        must_delete = is_match and (
+            other['state'] == token['state']
+            or other['state'] in token ['history_states']
+        )
+        if must_delete:
             del pending[otherid]
         else:
             if not [ t for t in running.itervalues() if t.get('inhibits') == otherid ]:
@@ -367,15 +371,21 @@ class FSA(object):
                     if other is token:
                         continue
                     if other['history_events'] == token['history_events']:
+                        LOG.debug('    is kept pending (inhibited by token in %r)', other['state'])
                         inhibitedid = other.get('inhibits')
                         if inhibitedid is not None:
                             dropped = pending.pop(inhibitedid, None)
                             if dropped:
-                                LOG.debug('    (dropping older pending state in %r)',
-                                          dropped['state'])
+                                if dropped['state'] == token['state'] \
+                                or dropped['state'] in token['history_states']:
+                                    LOG.debug('      dropping older pending token in %r',
+                                              dropped['state'])
+                                else:
+                                    matches.append(dropped)
+                                    LOG.debug('      freeing older pending token in %r to match',
+                                              dropped['state'])
                         other['inhibits'] = tokenid
                         inhibited = True
-                        LOG.debug('    is kept pending (inhibited by token in %r)', other['state'])
                 if inhibited:
                     pending[tokenid] = token
                     del running[tokenid]

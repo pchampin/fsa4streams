@@ -7,8 +7,12 @@ from unittest import skip
 def match_list(tokens):
     return
 
-def assert_matches(fsa, events, expected_matches, ordered=True):
-    tokens = fsa.feed_all(events)
+def assert_matches(fsa, events, expected_matches, ordered=True, timestamps=None):
+    if timestamps:
+        pairs = zip(events, timestamps)
+        tokens = fsa.feed_all_timestamps(pairs)
+    else:
+        tokens = fsa.feed_all(events)
     got = [ "".join(token['history_events']) for token in tokens ]
     if ordered:
         assert_equal(expected_matches, got)
@@ -16,8 +20,12 @@ def assert_matches(fsa, events, expected_matches, ordered=True):
         assert_set_equal(set(expected_matches), set(got))
     LOG.debug("---")
 
-def assert_outcomes(fsa, events, expected_outcomes, ordered=True):
-    tokens = fsa.feed_all(events)
+def assert_outcomes(fsa, events, expected_outcomes, ordered=True, timestamps=None):
+    if timestamps:
+        pairs = zip(events, timestamps)
+        tokens = fsa.feed_all_timestamps(pairs)
+    else:
+        tokens = fsa.feed_all(events)
     got = [ token['state'] for token in tokens ]
     if ordered:
         assert_equal(expected_outcomes, got)
@@ -507,3 +515,26 @@ def test_redundant_paths():
     })
     matches = fsa.feed_all("ab")
     assert_equal(1, len(matches))
+
+def test_a_b_star_with_timestamps():
+    fsa = FSA.make_empty()
+    (fsa
+     .add_state("start")
+       .add_transition("a", "finish")
+     .add_state("finish", terminal=True)
+       .add_transition("b", "finish")
+     .check_structure()
+    )
+    yield assert_matches, fsa, "a", ["a"], True, [1]
+    yield assert_matches, fsa, "ab", ["ab"], True, [1, 2]
+    yield assert_matches, fsa, "abb", ["abb"], True, [3, 5, 8]
+    yield assert_matches, fsa, "abbb", ["abbb"], True, [13, 21, 34, 45]
+    yield assert_matches, fsa, "c", [], True, [79]
+    yield assert_matches, fsa, "ac", ["a"], True, [1, 2]
+    yield assert_matches, fsa, "abc", ["ab"], True, [3, 5, 8]
+    yield assert_matches, fsa, "abbc", ["abb"], True, [13, 21, 34, 45]
+    yield assert_matches, fsa, "ca", ["a"], True, [2, 3]
+    yield assert_matches, fsa, "cab", ["ab"], True, [5, 8, 13, 21]
+    yield assert_matches, fsa, "cabb", ["abb"], True, [34, 45, 79, 124]
+    yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
+

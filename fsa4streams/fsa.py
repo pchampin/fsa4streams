@@ -249,19 +249,30 @@ class FSA(object):
                 LOG.debug('      making it an actual match')
 
 
-    def feed(self, event):
+    def feed(self, event, timestamp=None):
         """
         I ingest `event`, and I return a list of matching tokens.
 
         A matching token is a token that has reached a final state,
         and can not further progress in the FSA.
+
+        If provided,
+        ``timestamp`` must be an integer greater than all previous timestamps;
+        the default value is the previous timestamp + 1.
+        Timestamps are used to check ``max_duration`` constraints.
         """
-        LOG.debug('event %r', event)
         clock = self._tokens['clock']
         running = self._tokens['running']
         pending = self._tokens['pending']
         skip_create = False
         matches = []
+
+        if timestamp is None:
+            timestamp = clock
+        else:
+            assert timestamp >= clock
+
+        LOG.debug('event %r at timestamp %s', event, timestamp)
 
         # Make each running token take the event into account
         # - some of them will walk through a transition,
@@ -319,6 +330,7 @@ class FSA(object):
             LOG.debug('    moved to %r', possible_transitions[0]['target'])
             token['state'] = possible_transitions[0]['target']
             token['noise_state'] = 0
+            token['updated'] = timestamp
             if not possible_transitions[0].get('silent'):
                 token['history_events'].append(event)
                 token['history_states'].append(oldstateid)
@@ -349,7 +361,8 @@ class FSA(object):
                     LOG.debug('  new token in %r', transition['target'])
                     newtoken = {
                         "state": transition['target'],
-                        "created": clock,
+                        "created": timestamp,
+                        "updated": timestamp,
                         "noise_state": 0,
                         "noise_global": 0,
                         "history_events": [ event ],
@@ -392,7 +405,7 @@ class FSA(object):
                 else:
                     self._delete_token(tokenid, token, token_state, running, pending, matches)
 
-        self._tokens['clock'] = clock = clock+1
+        self._tokens['clock'] = clock = timestamp+1
 
         if matches and not self.allow_overlap:
             # drop all tokens overlapping with matches,
@@ -416,8 +429,17 @@ class FSA(object):
 
     def feed_all(self, iterable, finish=True):
         ret = []
-        for i in iterable:
-            ret += self.feed(i)
+        for event in iterable:
+            ret += self.feed(event)
+        if finish:
+            ret += self.finish()
+            self.reset()
+        return ret
+
+    def feed_all_timestamps(self, iterable, finish=True):
+        ret = []
+        for event, timestamp in iterable:
+            ret += self.feed(event, timestamp)
         if finish:
             ret += self.finish()
             self.reset()

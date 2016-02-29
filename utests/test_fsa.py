@@ -1,4 +1,5 @@
 from fsa4streams.fsa import FSA, LOG
+from fsa4streams.fsa import FSA, LOG
 
 from nose.tools import assert_equal, assert_set_equal
 from os.path import dirname, join
@@ -76,6 +77,7 @@ def test_a_b_star():
      .check_structure()
     )
     yield assert_matches, fsa, "a", ["a"]
+    yield assert_matches, fsa, "aa", ["a", "a"]
     yield assert_matches, fsa, "ab", ["ab"]
     yield assert_matches, fsa, "abb", ["abb"]
     yield assert_matches, fsa, "abbb", ["abbb"]
@@ -220,6 +222,9 @@ def test_default_transition():
     yield assert_outcomes, fsa, "aaaab", ['finish', 'error']
     yield assert_matches, fsa, "ab", ["ab"]
     yield assert_matches, fsa, "aab", ["aab"]
+    yield assert_matches, fsa, "aaa", ["aaa"]
+    yield assert_matches, fsa, "aaab", ["aaa"]
+    yield assert_matches, fsa, "aaaab", ["aaa", "ab"]
 
 
 def test_default_transition_overlap():
@@ -526,15 +531,64 @@ def test_a_b_star_with_timestamps():
      .check_structure()
     )
     yield assert_matches, fsa, "a", ["a"], True, [1]
-    yield assert_matches, fsa, "ab", ["ab"], True, [1, 2]
+    yield assert_matches, fsa, "aa", ["a", "a"], True, [1, 3]
+    yield assert_matches, fsa, "ab", ["ab"], True, [1, 3]
     yield assert_matches, fsa, "abb", ["abb"], True, [3, 5, 8]
     yield assert_matches, fsa, "abbb", ["abbb"], True, [13, 21, 34, 45]
     yield assert_matches, fsa, "c", [], True, [79]
-    yield assert_matches, fsa, "ac", ["a"], True, [1, 2]
+    yield assert_matches, fsa, "ac", ["a"], True, [1, 3]
     yield assert_matches, fsa, "abc", ["ab"], True, [3, 5, 8]
     yield assert_matches, fsa, "abbc", ["abb"], True, [13, 21, 34, 45]
-    yield assert_matches, fsa, "ca", ["a"], True, [2, 3]
+    yield assert_matches, fsa, "ca", ["a"], True, [3, 5]
     yield assert_matches, fsa, "cab", ["ab"], True, [5, 8, 13, 21]
     yield assert_matches, fsa, "cabb", ["abb"], True, [34, 45, 79, 124]
     yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
+    yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
 
+def test_a_b_star_with_fsa_max_duration():
+    fsa = FSA.make_empty(max_duration=2)
+    (fsa
+     .add_state("start")
+       .add_transition("a", "finish")
+     .add_state("finish", terminal=True)
+       .add_transition("b", "finish")
+     .check_structure()
+    )
+    yield assert_matches, fsa, "a", ["a"]
+    yield assert_matches, fsa, "aa", ["a", "a"]
+    yield assert_matches, fsa, "ab", ["ab"]
+    yield assert_matches, fsa, "abb", ["abb"]
+    yield assert_matches, fsa, "abbb", ["abb"]
+    yield assert_matches, fsa, "c", []
+    yield assert_matches, fsa, "ac", ["a"]
+    yield assert_matches, fsa, "abc", ["ab"]
+    yield assert_matches, fsa, "abbc", ["abb"]
+    yield assert_matches, fsa, "ca", ["a"]
+    yield assert_matches, fsa, "cab", ["ab"]
+    yield assert_matches, fsa, "cabb", ["abb"]
+    yield assert_matches, fsa, "abbabbb", ["abb", "abb"]
+
+def test_a_b_star_with_state_max_duration():
+    fsa = FSA.make_empty()
+    (fsa
+     .add_state("start")
+       .add_transition("a", "finish")
+     .add_state("finish", terminal=True, max_duration=2)
+       .add_transition("b", "finish")
+     .check_structure()
+    )
+    yield assert_matches, fsa, "a", ["a"], True, [1]
+    yield assert_matches, fsa, "aa", ["a", "a"], True, [1, 2]
+    yield assert_matches, fsa, "ab", ["ab"], True, [1, 3]
+    yield assert_matches, fsa, "abb", ["abb"], True, [1, 2, 3]
+    yield assert_matches, fsa, "abb", ["ab"], True, [1, 2, 5]
+
+    #yield assert_matches, fsa, "abbb", ["abbb"], True, [13, 21, 34, 45]
+    #yield assert_matches, fsa, "c", [], True, [79]
+    #yield assert_matches, fsa, "ac", ["a"], True, [3, 5]
+    #yield assert_matches, fsa, "abc", ["ab"], True, [3, 5, 8]
+    #yield assert_matches, fsa, "abbc", ["abb"], True, [13, 21, 34, 45]
+    #yield assert_matches, fsa, "ca", ["a"], True, [2, 3]
+    #yield assert_matches, fsa, "cab", ["ab"], True, [5, 8, 13, 21]
+    #yield assert_matches, fsa, "cabb", ["abb"], True, [34, 45, 79, 124]
+    #yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]

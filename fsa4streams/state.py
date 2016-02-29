@@ -42,9 +42,14 @@ class State(object):
                                     lambda v: type(v) is bool,
                                     "TODO doc")
     max_noise = _make_state_property('max_noise',
-                                     False,
+                                     0,
                                      lambda v: type(v) is int  and  int >=0,
                                      "TODO doc")
+
+    max_duration = _make_state_property('max_duration',
+                                        None,
+                                        lambda v: type(v) is int  and  int >0,
+                                        "TODO doc")
 
     default_transition = _make_state_property('default_transition',
                                      None,

@@ -24,11 +24,18 @@ The FSA is represented by a JSON object, with the following attributes:
 
 .. attribute:: fsa.max_noise
 
-   An integer (optional).
+   A non-negative integer (optional).
    
    It indicates how many unrecognized events this automaton will accept before failing.
    If unspecified, the automaton will accept any amount of noise
    (provided that states themselves accept some noise).
+
+.. attribute:: fsa.max_duration
+
+   A positive integer (optional).
+
+   It indicates the maximum duration between the fisrt event and the last event of a match.
+   If unspecified, the automaton will accept any duration.
 
 .. attribute:: fsa.allow_override
 
@@ -85,13 +92,24 @@ Every state is represented by a JSON object, with the following attributes:
 
 .. attribute:: state.max_noise
 
-   An integer (optional).
+   A non-negative integer (optional).
    
    It indicates how many unrecognized events this state will accept before failing.
    (in the limit imposed by `fsa.max_noise`:attr:).
    It defaults to 0, so by default automata are not noise-tolerant.
 
    This attribute can not be set together with `state.default_transition`:attr:.
+
+.. attribute:: state.max_duration
+
+   A positive integer (optional).
+
+   It indicates the maximum in which the FSA will stay in this state.
+   If no matching event occurs during this duration,
+   the FSA will fail to match.
+   It defaults to in infinity: if no max duration is specified,
+   the FSA may stay an arbitrary long time in that state
+   (in the limit imposed by `fsa.max_duration`:attr:).
 
 .. attribute:: state.default_transition
 

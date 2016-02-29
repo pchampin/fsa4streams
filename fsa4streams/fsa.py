@@ -126,6 +126,18 @@ class FSA(object):
         del self._structure['max_noise']
 
     @property
+    def max_duration(self):
+        return self._structure.get('max_duration')
+    @max_duration.setter
+    def max_duration(self, value):
+        if type(value) is not int  or  value <= 0:
+            raise ValueError('FSA.max_duration must be a positive int')
+        self._structure['max_duration'] = value
+    @max_duration.deleter
+    def max_duration(self):
+        del self._structure['max_duration']
+
+    @property
     def allow_overlap(self):
         return self._structure.get('allow_overlap', False)
     @allow_overlap.setter
@@ -285,6 +297,18 @@ class FSA(object):
             oldstateid = token['state']
             LOG.debug('  token in %r', oldstateid)
             oldstate = self[oldstateid]
+
+            # delete token if a max_duration has expired
+            duration = timestamp-token['updated']
+            if self.max_duration \
+            and timestamp-token['created'] > self.max_duration \
+            or oldstate.max_duration \
+            and timestamp-token['updated'] > oldstate.max_duration:
+                LOG.debug('    was dropped because it exceeded max_duration')
+                self._delete_token(tokenid, token, oldstate, running, pending, matches)
+                continue
+
+
             possible_transitions = [ t for t in oldstate.transitions
                             if self.match(t, event, token) ]
             if not possible_transitions:
@@ -408,15 +432,15 @@ class FSA(object):
         self._tokens['clock'] = clock = timestamp+1
 
         if matches and not self.allow_overlap:
-            # drop all tokens overlapping with matches,
-            # but noise absorbed by the final state does not count as an overlap
-            min_noise = min( match['noise_state'] for match in matches )
+            # drop all remaining tokens overlapping with matches,
+            max_updated = max (match['updated'] for match in matches )
             for d in (running, pending):
                 for tokenid, token in d.items():
-                    if clock - token['created'] > min_noise:
+                    if token['created'] <= max_updated:
                         del d[tokenid]
                         LOG.debug('  dropping token %r to prevent overlap',
                                   tokenid)
+            # drop all matches that are overlapped by another match
             if len(matches) > 1:
                 min_created = min( match['created'] for match in matches)
                 matches = [ match for match in matches

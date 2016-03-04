@@ -583,12 +583,13 @@ def test_a_b_star_with_state_max_duration():
     yield assert_matches, fsa, "abb", ["abb"], True, [1, 2, 3]
     yield assert_matches, fsa, "abb", ["ab"], True, [1, 2, 5]
 
-    #yield assert_matches, fsa, "abbb", ["abbb"], True, [13, 21, 34, 45]
-    #yield assert_matches, fsa, "c", [], True, [79]
-    #yield assert_matches, fsa, "ac", ["a"], True, [3, 5]
-    #yield assert_matches, fsa, "abc", ["ab"], True, [3, 5, 8]
-    #yield assert_matches, fsa, "abbc", ["abb"], True, [13, 21, 34, 45]
-    #yield assert_matches, fsa, "ca", ["a"], True, [2, 3]
-    #yield assert_matches, fsa, "cab", ["ab"], True, [5, 8, 13, 21]
-    #yield assert_matches, fsa, "cabb", ["abb"], True, [34, 45, 79, 124]
-    #yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
+def test_negative_timestamp():
+    fsa = FSA.make_empty()
+    (fsa
+     .add_state("start")
+       .add_transition("a", "finish")
+     .add_state("finish", terminal=True, max_duration=2)
+       .add_transition("b", "finish")
+     .check_structure()
+    )
+    yield assert_matches, fsa, "ab", ["ab"], True, [-2, -1]

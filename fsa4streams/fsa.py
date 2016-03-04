@@ -25,7 +25,7 @@ class FSA(object):
         YOU SHOULD RATHER USE ONE OF THE from_* STATIC METHODS.
         """
         self._structure = structure
-        self._tokens = { 'clock': 0, 'running': {}, 'pending': {} }
+        self._tokens = { 'clock': None, 'running': {}, 'pending': {} }
         if check_structure:
             self.check_structure(True)
 
@@ -280,9 +280,9 @@ class FSA(object):
         matches = []
 
         if timestamp is None:
-            timestamp = clock
+            timestamp = clock or 0
         else:
-            assert timestamp >= clock
+            assert clock is None  or  timestamp >= clock
 
         LOG.debug('event %r at timestamp %s', event, timestamp)
 

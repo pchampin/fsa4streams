@@ -115,8 +115,8 @@ def test_noise():
     yield assert_matches, fsa, "ababba", ["aaa"]
     yield assert_matches, fsa, "abbabba", ["aaa"]
 
-def test_noise_global():
-    fsa = FSA.make_empty(max_noise=3)
+def test_total_noise():
+    fsa = FSA.make_empty()
     (fsa
      .add_state("start")
        .add_transition("a", "s1")
@@ -124,7 +124,7 @@ def test_noise_global():
        .add_transition("a", "s2")
      .add_state("s2", max_noise=2)
        .add_transition("a", "finish")
-     .add_state("finish", terminal=True)
+     .add_state("finish", terminal=True, max_total_noise=3)
      .check_structure()
     )
     yield assert_matches, fsa, "aaa", ["aaa"]
@@ -161,7 +161,7 @@ def test_non_deterministic():
 
 
 def test_non_deterministic_noise():
-    fsa = FSA.make_empty(max_noise=1)
+    fsa = FSA.make_empty()
     (fsa
      .add_state("start")
        .add_transition("a", "s1")
@@ -170,7 +170,7 @@ def test_non_deterministic_noise():
        .add_transition("b", "finish")
      .add_state("s2", max_noise=1)
        .add_transition("c", "finish")
-     .add_state("finish", terminal=True)
+     .add_state("finish", terminal=True, max_total_noise=1)
      .check_structure()
     )
     yield assert_matches, fsa, "ab",   ["ab"]
@@ -181,9 +181,8 @@ def test_non_deterministic_noise():
 
 
 def test_non_deterministic_noise_overlap():
-    fsa = FSA.make_empty(max_noise=1,
-                         allow_overlap=True,
-                         state_defaults={'max_noise': 1})
+    fsa = FSA.make_empty(allow_overlap=True,
+                         state_defaults={'max_noise': 1, 'max_total_noise': 1})
     (fsa
      .add_state("start")
        .add_transition("a", "s1")
@@ -358,7 +357,7 @@ def test_differ_match_tricky():
 
 
 def test_import_export_tokens():
-    fsa = FSA.make_empty(max_noise=1, allow_overlap=True)
+    fsa = FSA.make_empty(allow_overlap=True)
     (fsa
      .add_state("start")
        .add_transition("a", "s1")
@@ -368,7 +367,7 @@ def test_import_export_tokens():
        .add_transition("c", "finish")
      .add_state("s2", max_noise=1)
        .add_transition("d", "finish")
-     .add_state("finish", terminal=True)
+     .add_state("finish", terminal=True, max_total_noise=1)
      .check_structure()
     )
     fsa.feed_all("abbb", False)

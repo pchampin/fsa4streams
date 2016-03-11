@@ -114,18 +114,6 @@ class FSA(object):
         return State(self, stateid)
 
     @property
-    def max_noise(self):
-        return self._structure.get('max_noise')
-    @max_noise.setter
-    def max_noise(self, value):
-        if type(value) is not int  or  value < 0:
-            raise ValueError('FSA.max_noise must be a non-negative int')
-        self._structure['max_noise'] = value
-    @max_noise.deleter
-    def max_noise(self):
-        del self._structure['max_noise']
-
-    @property
     def max_duration(self):
         return self._structure.get('max_duration')
     @max_duration.setter
@@ -230,10 +218,10 @@ class FSA(object):
             return matcher_directory[transition_type](transition, event, token, self)
 
     def _delete_token(self, tokenid, token, token_state,
-                      running, pending, matches):
+                      running, pending, matches, allow_match=True):
         del running[tokenid]
         is_match = token_state.terminal
-        if is_match:
+        if is_match and allow_match:
             LOG.debug('    matched')
             matches.append(token)
         else:
@@ -320,10 +308,10 @@ class FSA(object):
             if not possible_transitions:
                 LOG.debug('    added noise')
                 token['noise_state'] += 1
-                token['noise_global'] += 1
+                token['noise_total'] += 1
                 if token['noise_state'] > oldstate.max_noise \
-                or self.max_noise is not None \
-                and token['noise_global'] > self.max_noise:
+                or oldstate.max_total_noise is not None \
+                and token['noise_total'] > oldstate.max_total_noise:
                     self._delete_token(tokenid, token, oldstate, running, pending, matches)
                 continue
 
@@ -351,8 +339,9 @@ class FSA(object):
                 token['inhibits'] = newid
 
             # pushing token through first transition
-            LOG.debug('    moved to %r', possible_transitions[0]['target'])
-            token['state'] = possible_transitions[0]['target']
+            newstateid = possible_transitions[0]['target']
+            LOG.debug('    moved to %r', newstateid)
+            token['state'] = newstateid
             token['noise_state'] = 0
             token['updated'] = timestamp
             if not possible_transitions[0].get('silent'):
@@ -360,6 +349,11 @@ class FSA(object):
                 token['history_states'].append(oldstateid)
             else:
                 LOG.debug('      (silently)')
+            newstate = self[newstateid]
+            if newstate.max_total_noise is not None \
+            and token['noise_total'] > newstate.max_total_noise:
+                LOG.debug('      and was dropped (max_total_noise exceeded)')
+                self._delete_token(tokenid, token, newstate, running, pending, matches, False)
 
             # cloning token through other transitions (non-deterministic FSA)
             for transition in possible_transitions[1:]:
@@ -388,7 +382,7 @@ class FSA(object):
                         "created": timestamp,
                         "updated": timestamp,
                         "noise_state": 0,
-                        "noise_global": 0,
+                        "noise_total": 0,
                         "history_events": [ event ],
                         "history_states": []
                     }

@@ -22,20 +22,12 @@ The FSA is represented by a JSON object, with the following attributes:
    It must contain one state named ``start``,
    which will be the starting state.
 
-.. attribute:: fsa.max_noise
-
-   A non-negative integer (optional).
-   
-   It indicates how many unrecognized events this automaton will accept before failing.
-   If unspecified, the automaton will accept any amount of noise
-   (provided that states themselves accept some noise).
-
 .. attribute:: fsa.max_duration
 
    A positive integer (optional).
 
    It indicates the maximum duration between the fisrt event and the last event of a match.
-   If unspecified, the automaton will accept any duration.
+   If it is unspecified, the automaton will accept any duration.
 
 .. attribute:: fsa.allow_override
 
@@ -73,12 +65,6 @@ State
 
 Every state is represented by a JSON object, with the following attributes:
 
-.. attribute:: state.transitions
-
-   A list of `transition objects <#transition>`_ (optional).
-
-   Note that a state without any transitions must be `terminal`:attr`.
-
 .. attribute:: state.terminal
 
    A boolean (optional).
@@ -90,15 +76,47 @@ Every state is represented by a JSON object, with the following attributes:
    (but may not do,
    if the automaton manages to progress to a further terminal state).
 
+.. attribute:: state.transitions
+
+   A list of `transition objects <#transition>`_ (optional).
+
+   Note that a state without any transitions must be `terminal`:attr`.
+
+.. attribute:: state.default_transition
+
+   A `transition object <#transition>`_ with some restrictions (optional).
+
+   It provides a transition to follow when an unrecognized event is encountered.
+   This special transition can not have any `~transition.condition`:attr: or `~transition.matcher`:attr:.
+
+   This attribute can not be set together with `~state.max_noise`:attr:.
+
 .. attribute:: state.max_noise
 
    A non-negative integer (optional).
    
-   It indicates how many unrecognized events this state will accept before failing.
-   (in the limit imposed by `fsa.max_noise`:attr:).
-   It defaults to 0, so by default automata are not noise-tolerant.
+   It indicates how many unrecognized events can occur on this state before the automaton fails
+   (in the limit imposed by `~state.max_total_noise`:attr:, if any).
+   It defaults to 0, so by default states are not noise-tolerant.
 
-   This attribute can not be set together with `state.default_transition`:attr:.
+   This attribute can not be set together with `~state.default_transition`:attr:.
+
+.. attribute:: state.max_total_noise
+
+   A non-negative integer (optional).
+
+   This attribute is similar to `~state.max_noise`:attr: above,
+   but instead of considering only the unrecognized events occuring on the this state,
+   it also considers *all* unrecognized events encountered from the ``start`` state.
+   If it is unspecified, the state will not be affected by previous noise.
+
+   This attribute is particularly useful on terminal states,
+   to prevent a match when it was too noisy overall.
+   However, if it is the same for all the terminal states of the automaton,
+   it is a good idea to set it in the `fsa.state_defaults`:attr:,
+   so that the engine can prune searches *as soon* as a candidate match is too noisy
+   (rather than wait for it to reach the terminal state to reject it).
+
 
 .. attribute:: state.max_duration
 
@@ -111,15 +129,6 @@ Every state is represented by a JSON object, with the following attributes:
    the FSA may stay an arbitrary long time in that state
    (in the limit imposed by `fsa.max_duration`:attr:).
 
-.. attribute:: state.default_transition
-
-   A `transition object <#transition>`_ with some (optional).
-
-   It provides a transition to follow when an unrecognized event is encountered.
-   This special transition can not have any `~transition.condition`:attr: or `~transition.matcher`:attr:.
-   
-   This attribute can not be set together with `state.max_noise`:attr:.
-   
 
 Transition
 ==========

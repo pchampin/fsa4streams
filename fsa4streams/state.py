@@ -41,8 +41,14 @@ class State(object):
                                     False,
                                     lambda v: type(v) is bool,
                                     "TODO doc")
+
     max_noise = _make_state_property('max_noise',
                                      0,
+                                     lambda v: type(v) is int  and  int >=0,
+                                     "TODO doc")
+
+    max_total_noise = _make_state_property('max_total_noise',
+                                     None,
                                      lambda v: type(v) is int  and  int >=0,
                                      "TODO doc")
 

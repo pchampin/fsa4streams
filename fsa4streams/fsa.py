@@ -114,18 +114,6 @@ class FSA(object):
         return State(self, stateid)
 
     @property
-    def max_duration(self):
-        return self._structure.get('max_duration')
-    @max_duration.setter
-    def max_duration(self, value):
-        if type(value) is not int  or  value <= 0:
-            raise ValueError('FSA.max_duration must be a positive int')
-        self._structure['max_duration'] = value
-    @max_duration.deleter
-    def max_duration(self):
-        del self._structure['max_duration']
-
-    @property
     def allow_overlap(self):
         return self._structure.get('allow_overlap', False)
     @allow_overlap.setter
@@ -288,8 +276,8 @@ class FSA(object):
 
             # delete token if a max_duration has expired
             duration = timestamp-token['updated']
-            if self.max_duration \
-            and timestamp-token['created'] > self.max_duration \
+            if oldstate.max_total_duration \
+            and timestamp-token['created'] > oldstate.max_total_duration \
             or oldstate.max_duration \
             and timestamp-token['updated'] > oldstate.max_duration:
                 LOG.debug('    was dropped because it exceeded max_duration')
@@ -349,10 +337,15 @@ class FSA(object):
                 token['history_states'].append(oldstateid)
             else:
                 LOG.debug('      (silently)')
+
             newstate = self[newstateid]
             if newstate.max_total_noise is not None \
             and token['noise_total'] > newstate.max_total_noise:
                 LOG.debug('      and was dropped (max_total_noise exceeded)')
+                self._delete_token(tokenid, token, newstate, running, pending, matches, False)
+            if newstate.max_total_duration is not None \
+            and timestamp-token['created'] > newstate.max_total_duration:
+                LOG.debug('      and was dropped (max_total_duration exceeded)')
                 self._delete_token(tokenid, token, newstate, running, pending, matches, False)
 
             # cloning token through other transitions (non-deterministic FSA)

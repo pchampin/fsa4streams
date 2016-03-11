@@ -57,6 +57,11 @@ class State(object):
                                         lambda v: type(v) is int  and  int >0,
                                         "TODO doc")
 
+    max_total_duration = _make_state_property('max_total_duration',
+                                        None,
+                                        lambda v: type(v) is int  and  int >0,
+                                        "TODO doc")
+
     default_transition = _make_state_property('default_transition',
                                      None,
                                      lambda v: type(v) is dict,

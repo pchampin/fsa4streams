@@ -544,12 +544,12 @@ def test_a_b_star_with_timestamps():
     yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
     yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
 
-def test_a_b_star_with_fsa_max_duration():
-    fsa = FSA.make_empty(max_duration=2)
+def test_a_b_star_with_max_total_duration():
+    fsa = FSA.make_empty()
     (fsa
      .add_state("start")
        .add_transition("a", "finish")
-     .add_state("finish", terminal=True)
+     .add_state("finish", terminal=True, max_total_duration=2)
        .add_transition("b", "finish")
      .check_structure()
     )
@@ -566,6 +566,7 @@ def test_a_b_star_with_fsa_max_duration():
     yield assert_matches, fsa, "cab", ["ab"]
     yield assert_matches, fsa, "cabb", ["abb"]
     yield assert_matches, fsa, "abbabbb", ["abb", "abb"]
+    yield assert_matches, fsa, "ab", ["a"], True, [1, 4]
 
 def test_a_b_star_with_state_max_duration():
     fsa = FSA.make_empty()

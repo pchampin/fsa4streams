@@ -22,13 +22,6 @@ The FSA is represented by a JSON object, with the following attributes:
    It must contain one state named ``start``,
    which will be the starting state.
 
-.. attribute:: fsa.max_duration
-
-   A positive integer (optional).
-
-   It indicates the maximum duration between the fisrt event and the last event of a match.
-   If it is unspecified, the automaton will accept any duration.
-
 .. attribute:: fsa.allow_override
 
    A boolean (optional).
@@ -117,7 +110,6 @@ Every state is represented by a JSON object, with the following attributes:
    so that the engine can prune searches *as soon* as a candidate match is too noisy
    (rather than wait for it to reach the terminal state to reject it).
 
-
 .. attribute:: state.max_duration
 
    A positive integer (optional).
@@ -129,6 +121,21 @@ Every state is represented by a JSON object, with the following attributes:
    the FSA may stay an arbitrary long time in that state
    (in the limit imposed by `fsa.max_duration`:attr:).
 
+.. attribute:: fsa.max_total_duration
+
+   A positive integer (optional).
+
+   This attribute is similar to `~state.max_duration`:attr: above,
+   but instead of considering the duration since the automaton entered this state,
+   it considers the total duration since the automaton entered the ``start`` state.
+   If it is unspecified, the automaton will accept any duration.
+
+   This attribute is particularly useful on terminal states,
+   to prevent a match when it was too long overall.
+   However, if it is the same for all the terminal states of the automaton,
+   it is a good idea to set it in the `fsa.state_defaults`:attr:,
+   so that the engine can prune searches *as soon* as a candidate match is too long
+   (rather than wait for it to reach the terminal state to reject it).
 
 Transition
 ==========

@@ -200,6 +200,20 @@ def test_non_deterministic_noise_overlap():
     yield assert_matches, fsa, "acb",  ["ac", "ab"]
     yield assert_matches, fsa, "adbc", ["ab"]
 
+def test_overlapping_pairs():
+    fsa = FSA.make_empty(allow_overlap=True)
+    (fsa
+     .add_state("start")
+       .add_transition(".", "s1", matcher="regexp")
+       .add_transition(".", "s2", matcher="regexp")
+     .add_state("s1", max_noise=1)
+       .add_transition("b", "finish")
+     .add_state("s2", max_noise=1)
+       .add_transition("c", "finish")
+     .add_state("finish", terminal=True)
+     .check_structure()
+    )
+    assert_matches(fsa, "abc", ["ab", "bc", "ac"], False)
 
 def test_default_transition():
     fsa = FSA.make_empty()

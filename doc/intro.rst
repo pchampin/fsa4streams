@@ -128,3 +128,31 @@ Overriding matches
    This notion of "greedyness" (greed?) can be tricky...
    It can be summed up 
    
+Event sequence and timestamps
++++++++++++++++++++++++++++++
+
+The :meth:``~fsa4streams.fsa.FSA.feed`` is used to feed the FSA with events.
+It accepts an optional ``timestamp`` argument,
+which is used to compute the duration
+(see `~state.max_duration`:attr: and `~state.max_total_duration`:attr`).
+While it would make no sense if an event had a timestamp smaller than a previous event,
+it is allowed for an event to have the *same* timestamp as the previous one.
+This is useful to represent that the duration between two events is zero
+(*i.e.* too small to be measured).
+
+It is important to understand, though,
+that this does not override the *order* in which the events where fed,
+which has precedence over the (possibly partial) order induced by the events.
+In other words, if the FSA below is fed with B then A,
+in that order but with the same timestamp,
+it will *not* yield AB as a match.
+
+.. digraph:: example_abstar
+
+      rankdir=LR
+      node[shape=circle,label=""]
+      s0[label=start]
+      s0  -> s1 [label=A]
+      s1  -> s2 [label=B]
+      s2[shape=doublecircle,label="end"]
+

@@ -607,3 +607,27 @@ def test_negative_timestamp():
      .check_structure()
     )
     yield assert_matches, fsa, "ab", ["ab"], True, [-2, -1]
+
+def test_negative_timestamp_after_reset():
+    fsa = FSA.make_empty()
+    (fsa
+     .add_state("start")
+       .add_transition("a", "finish")
+     .add_state("finish", terminal=True, max_duration=2)
+       .add_transition("b", "finish")
+     .check_structure()
+    )
+    fsa.feed("a", 42)
+    fsa.reset()
+    yield assert_matches, fsa, "ab", ["ab"], True, [-2, -1]
+
+def test_equal_timestamp():
+    fsa = FSA.make_empty()
+    (fsa
+     .add_state("start")
+       .add_transition("a", "finish")
+     .add_state("finish", terminal=True, max_duration=2)
+       .add_transition("b", "finish")
+     .check_structure()
+    )
+    yield assert_matches, fsa, "ab", ["ab"], True, [42, 42]

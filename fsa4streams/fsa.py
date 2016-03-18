@@ -152,7 +152,7 @@ class FSA(object):
     def reset(self):
         self._tokens['running'].clear()
         self._tokens['pending'].clear()
-        self._tokens['clock'] = 0
+        self._tokens['clock'] = None
 
     def is_busy(self):
         return len(self._tokens['running']) > 0 \
@@ -245,7 +245,7 @@ class FSA(object):
         and can not further progress in the FSA.
 
         If provided,
-        ``timestamp`` must be an integer greater than all previous timestamps;
+        ``timestamp`` must be an integer greater or equal than all previous timestamps;
         the default value is the previous timestamp + 1.
         Timestamps are used to check ``max_duration`` constraints.
         """
@@ -256,7 +256,10 @@ class FSA(object):
         matches = []
 
         if timestamp is None:
-            timestamp = clock or 0
+            if clock is None:
+                timestamp = 0
+            else:
+                timestamp = clock+1
         else:
             assert clock is None  or  timestamp >= clock
 
@@ -416,7 +419,7 @@ class FSA(object):
                 else:
                     self._delete_token(tokenid, token, token_state, running, pending, matches)
 
-        self._tokens['clock'] = clock = timestamp+1
+        self._tokens['clock'] = timestamp
 
         if matches and not self.allow_overlap:
             # drop all remaining tokens overlapping with matches,

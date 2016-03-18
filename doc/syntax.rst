@@ -22,7 +22,7 @@ The FSA is represented by a JSON object, with the following attributes:
    It must contain one state named ``start``,
    which will be the starting state.
 
-.. attribute:: fsa.allow_override
+.. attribute:: fsa.allow_overlap
 
    A boolean (optional).
 
@@ -31,7 +31,7 @@ The FSA is represented by a JSON object, with the following attributes:
    If true,
    the automaton may yield overlapping matches,
    possibly involving the same events.
-   See `overriding_matches`:ref: for more details.
+   See `overlapping_matches`:ref: for more details.
 
 .. attribute:: fsa.state_defaults
 

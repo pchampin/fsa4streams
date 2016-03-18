@@ -25,8 +25,6 @@
 Bits and pieces
 ===============
 
-.. _overriding_matches:
-
 Greedy matches
 ++++++++++++++
 
@@ -92,17 +90,19 @@ as the former has a terminal state that was never reached by the latter.
       s2[shape=doublecircle,label="end-b"]
 
 
-Overriding matches
-++++++++++++++++++
+.. _overlapping_matches:
+
+Overlapping matches
++++++++++++++++++++
 
    The noise-torelant FSM below, fed with ``ababab``,
-   will only yield ``aaa`` if :js:attr:`fsa.allow_override` is set to false,
+   will only yield ``aaa`` if :js:attr:`fsa.allow_overlap` is set to false,
    but it will yield ``aaa`` and ``bbb`` if it is set to true.
-   Note that, if fed with ``acaca``, with :js:attr:`fsa.allow_override` set to true,
+   Note that, if fed with ``acaca``, with :js:attr:`fsa.allow_overlap` set to true,
    it will yield ``aaa`` and ``cca``,
    where the last ``a`` participates in both matches.
 
-   .. digraph:: example_allow_override
+   .. digraph:: example_allow_overlap
 
       rankdir=LR
       node[shape=circle,label=""]
@@ -123,7 +123,7 @@ Overriding matches
    Note however that automata work in a greedy way,
    so the automaton above is fed with ``ccaa`` will only yield ``ccaa``,
    it will never yield ``cca``,
-   regardless of `fsa.allow_override`:js:attr:.
+   regardless of `fsa.allow_overlap`:js:attr:.
 
    This notion of "greedyness" (greed?) can be tricky...
    It can be summed up 

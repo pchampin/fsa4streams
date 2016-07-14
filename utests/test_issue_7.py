@@ -23,4 +23,4 @@ def test_issue_7():
         }
     })
     assert_matches(fsa, "ab", ["ab"])
-    
+

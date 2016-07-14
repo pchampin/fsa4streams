@@ -1,10 +1,20 @@
 from fsa4streams.fsa import FSA, LOG
 
-from nose.tools import assert_equal, assert_set_equal
+from .test_fsa import assert_matches
 
-from test_fsa import assert_matches
+from pytest import mark
 
-def test_multiple_choices_matcher():
+@mark.parametrize("string, matches", [
+    ("a",    []),
+    ("ab",   []),
+    ("b",    []),
+    ("ba",   []),
+    ("bac",  ['bac']),
+    ("def",  ['def']),
+    ("bace", ['bac']),
+    ("baec", []),
+])
+def test_multiple_choices_matcher(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -16,17 +26,19 @@ def test_multiple_choices_matcher():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "a", []
-    yield assert_matches, fsa, "ab", []
-    yield assert_matches, fsa, "b", []
-    yield assert_matches, fsa, "ba", []
-    yield assert_matches, fsa, "bac", ['bac']
-    yield assert_matches, fsa, "def", ['def']
-    yield assert_matches, fsa, "bace", ['bac']
-    yield assert_matches, fsa, "baec", []
+    assert_matches(fsa, string, matches)
 
-
-def test_regexp_matcher():
+@mark.parametrize("string, matches", [
+    ("a",    []),
+    ("ab",   []),
+    ("b",    []),
+    ("ba",   []),
+    ("bac",  ['bac']),
+    ("def",  ['def']),
+    ("bace", ['bac']),
+    ("baec", []),
+])
+def test_regexp_matcher(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -38,13 +50,4 @@ def test_regexp_matcher():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "a", []
-    yield assert_matches, fsa, "ab", []
-    yield assert_matches, fsa, "b", []
-    yield assert_matches, fsa, "ba", []
-    yield assert_matches, fsa, "bac", ['bac']
-    yield assert_matches, fsa, "def", ['def']
-    yield assert_matches, fsa, "bace", ['bac']
-    yield assert_matches, fsa, "baec", []
-
-
+    assert_matches(fsa, string, matches)

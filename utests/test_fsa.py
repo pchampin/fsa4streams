@@ -1,41 +1,45 @@
 from fsa4streams.fsa import FSA, LOG
-from fsa4streams.fsa import FSA, LOG
 
-from nose.tools import assert_equal, assert_set_equal
 from os.path import dirname, join
-from unittest import skip
 
-def match_list(tokens):
-    return
+from pytest import mark
 
-def assert_matches(fsa, events, expected_matches, ordered=True, timestamps=None):
+def process(fsa, events, ordered=True, timestamps=None):
     if timestamps:
         pairs = zip(events, timestamps)
         tokens = fsa.feed_all_timestamps(pairs)
     else:
         tokens = fsa.feed_all(events)
-    got = [ "".join(token['history_events']) for token in tokens ]
+    matches = [ "".join(token['history_events']) for token in tokens ]
+    outcomes = [ token['state'] for token in tokens ]
+    if not ordered:
+        matches = set(matches)
+        outcomes = set(outcomes)
+    return matches, outcomes
+
+def assert_matches(fsa, events, expected_matches, ordered=True, timestamps=None):
+    got, _ = process(fsa, events, ordered, timestamps)
     if ordered:
-        assert_equal(expected_matches, got)
+        assert expected_matches == got
     else:
-        assert_set_equal(set(expected_matches), set(got))
+        assert set(expected_matches) == got
     LOG.debug("---")
 
 def assert_outcomes(fsa, events, expected_outcomes, ordered=True, timestamps=None):
-    if timestamps:
-        pairs = zip(events, timestamps)
-        tokens = fsa.feed_all_timestamps(pairs)
-    else:
-        tokens = fsa.feed_all(events)
-    got = [ token['state'] for token in tokens ]
+    _, got = process(fsa, events, ordered, timestamps)
     if ordered:
-        assert_equal(expected_outcomes, got)
+        assert expected_outcomes == got
     else:
-        assert_set_equal(set(expected_outcomes), set(got))
+        assert set(expected_outcomes) == got
     LOG.debug("---")
 
 
-def test_super_simple():
+@mark.parametrize('string, matches', [
+    ("a",     ["a"]),
+    ("b",     []),
+    ("babab", ["a", "a"]),
+])
+def test_super_simple(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -43,31 +47,47 @@ def test_super_simple():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "a", ["a"]
-    yield assert_matches, fsa, "b", []
-    yield assert_matches, fsa, "babab", ["a", "a"]
+    assert_matches(fsa, string, matches)
 
 
-def test_a_star():
+@mark.parametrize('string, matches', [
+    ("",       []),
+    ("a",      ["a"]),
+    ("aa",     ["aa"]),
+    ("aaa",    ["aaa"]),
+    ("b",      []),
+    ("ba",     ["a"]),
+    ("baa",    ["aa"]),
+    ("ab",     ["a"]),
+    ("aab",    ["aa"]),
+    ("aabaaa", ["aa", "aaa"]),
+])
+def test_a_star(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start", terminal=True)
        .add_transition("a", "start")
      .check_structure()
     )
-    yield assert_matches, fsa, "", []
-    yield assert_matches, fsa, "a", ["a"]
-    yield assert_matches, fsa, "aa", ["aa"]
-    yield assert_matches, fsa, "aaa", ["aaa"]
-    yield assert_matches, fsa, "b", []
-    yield assert_matches, fsa, "ba", ["a"]
-    yield assert_matches, fsa, "baa", ["aa"]
-    yield assert_matches, fsa, "ab", ["a"]
-    yield assert_matches, fsa, "aab", ["aa"]
-    yield assert_matches, fsa, "aabaaa", ["aa", "aaa"]
+    assert_matches(fsa, string, matches)
 
 
-def test_a_b_star():
+@mark.parametrize('string, matches', [
+    ("a",       ["a"]),
+    ("aa",      ["a", "a"]),
+    ("ab",      ["ab"]),
+    ("abb",     ["abb"]),
+    ("abbb",    ["abbb"]),
+    ("c",       []),
+    ("ac",      ["a"]),
+    ("abc",     ["ab"]),
+    ("abbc",    ["abb"]),
+    ("ca",      ["a"]),
+    ("cab",     ["ab"]),
+    ("cabb",    ["abb"]),
+    ("abbabbb", ["abb", "abbb"]),
+])
+def test_a_b_star(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -76,22 +96,22 @@ def test_a_b_star():
        .add_transition("b", "finish")
      .check_structure()
     )
-    yield assert_matches, fsa, "a", ["a"]
-    yield assert_matches, fsa, "aa", ["a", "a"]
-    yield assert_matches, fsa, "ab", ["ab"]
-    yield assert_matches, fsa, "abb", ["abb"]
-    yield assert_matches, fsa, "abbb", ["abbb"]
-    yield assert_matches, fsa, "c", []
-    yield assert_matches, fsa, "ac", ["a"]
-    yield assert_matches, fsa, "abc", ["ab"]
-    yield assert_matches, fsa, "abbc", ["abb"]
-    yield assert_matches, fsa, "ca", ["a"]
-    yield assert_matches, fsa, "cab", ["ab"]
-    yield assert_matches, fsa, "cabb", ["abb"]
-    yield assert_matches, fsa, "abbabbb", ["abb", "abbb"]
+    assert_matches(fsa, string, matches)
 
-
-def test_noise():
+@mark.parametrize('string, matches', [
+    ("aaa",     ["aaa"]),
+    ("abaa",    ["aaa"]),
+    ("abbaa",   ["aaa"]),
+    ("abbbaa",  []),
+    ("aaba",    ["aaa"]),
+    ("aabba",   ["aaa"]),
+    ("aabbba",  []),
+    ("ababa",   ["aaa"]),
+    ("abbaba",  ["aaa"]),
+    ("ababba",  ["aaa"]),
+    ("abbabba", ["aaa"]),
+])
+def test_noise(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -103,19 +123,23 @@ def test_noise():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "aaa", ["aaa"]
-    yield assert_matches, fsa, "abaa", ["aaa"]
-    yield assert_matches, fsa, "abbaa", ["aaa"]
-    yield assert_matches, fsa, "abbbaa", []
-    yield assert_matches, fsa, "aaba", ["aaa"]
-    yield assert_matches, fsa, "aabba", ["aaa"]
-    yield assert_matches, fsa, "aabbba", []
-    yield assert_matches, fsa, "ababa", ["aaa"]
-    yield assert_matches, fsa, "abbaba", ["aaa"]
-    yield assert_matches, fsa, "ababba", ["aaa"]
-    yield assert_matches, fsa, "abbabba", ["aaa"]
+    assert_matches(fsa, string, matches)
 
-def test_total_noise():
+
+@mark.parametrize('string, matches', [
+    ("aaa",     ["aaa"]),
+    ("abaa",    ["aaa"]),
+    ("abbaa",   ["aaa"]),
+    ("abbbaa",  []),
+    ("aaba",    ["aaa"]),
+    ("aabba",   ["aaa"]),
+    ("aabbba",  []),
+    ("ababa",   ["aaa"]),
+    ("abbaba",  ["aaa"]),
+    ("ababba",  ["aaa"]),
+    ("abbabba", []),
+])
+def test_total_noise(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -127,20 +151,17 @@ def test_total_noise():
      .add_state("finish", terminal=True, max_total_noise=3)
      .check_structure()
     )
-    yield assert_matches, fsa, "aaa", ["aaa"]
-    yield assert_matches, fsa, "abaa", ["aaa"]
-    yield assert_matches, fsa, "abbaa", ["aaa"]
-    yield assert_matches, fsa, "abbbaa", []
-    yield assert_matches, fsa, "aaba", ["aaa"]
-    yield assert_matches, fsa, "aabba", ["aaa"]
-    yield assert_matches, fsa, "aabbba", []
-    yield assert_matches, fsa, "ababa", ["aaa"]
-    yield assert_matches, fsa, "abbaba", ["aaa"]
-    yield assert_matches, fsa, "ababba", ["aaa"]
-    yield assert_matches, fsa, "abbabba", []
+    assert_matches(fsa, string, matches)
 
 
-def test_non_deterministic():
+@mark.parametrize('string, matches', [
+    ("ab",   ["ab"]),
+    ("ac",   ["ac"]),
+    ("abc",  ["ab"]),
+    ("acb",  ["ac"]),
+    ("adbc", []),
+])
+def test_non_deterministic(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -153,14 +174,17 @@ def test_non_deterministic():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "ab",   ["ab"]
-    yield assert_matches, fsa, "ac",   ["ac"]
-    yield assert_matches, fsa, "abc",  ["ab"]
-    yield assert_matches, fsa, "acb",  ["ac"]
-    yield assert_matches, fsa, "adbc", []
+    assert_matches(fsa, string, matches)
 
 
-def test_non_deterministic_noise():
+@mark.parametrize('string, matches', [
+    ("ab",   ["ab"]),
+    ("ac",   ["ac"]),
+    ("abc",  ["ab"]),
+    ("acb",  ["ac"]),
+    ("adbc", ["ab"]),
+])
+def test_non_deterministic_noise(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -173,14 +197,17 @@ def test_non_deterministic_noise():
      .add_state("finish", terminal=True, max_total_noise=1)
      .check_structure()
     )
-    yield assert_matches, fsa, "ab",   ["ab"]
-    yield assert_matches, fsa, "ac",   ["ac"]
-    yield assert_matches, fsa, "abc",  ["ab"]
-    yield assert_matches, fsa, "acb",  ["ac"]
-    yield assert_matches, fsa, "adbc", ["ab"]
+    assert_matches(fsa, string, matches)
 
 
-def test_non_deterministic_noise_overlap():
+@mark.parametrize('string, matches', [
+    ("ab",   ["ab"]),
+    ("ac",   ["ac"]),
+    ("abc",  ["ab", "ac"]),
+    ("acb",  ["ac", "ab"]),
+    ("adbc", ["ab"]),
+])
+def test_non_deterministic_noise_overlap(string, matches):
     fsa = FSA.make_empty(allow_overlap=True,
                          state_defaults={'max_noise': 1, 'max_total_noise': 1})
     (fsa
@@ -194,13 +221,13 @@ def test_non_deterministic_noise_overlap():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "ab",   ["ab"]
-    yield assert_matches, fsa, "ac",   ["ac"]
-    yield assert_matches, fsa, "abc",  ["ab", "ac"]
-    yield assert_matches, fsa, "acb",  ["ac", "ab"]
-    yield assert_matches, fsa, "adbc", ["ab"]
+    assert_matches(fsa, string, matches)
 
-def test_overlapping_pairs():
+
+@mark.parametrize('string, matches', [
+    ("abc", ["ab", "bc", "ac"]),
+])
+def test_overlapping_pairs(string, matches):
     fsa = FSA.make_empty(allow_overlap=True)
     (fsa
      .add_state("start")
@@ -213,9 +240,17 @@ def test_overlapping_pairs():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    assert_matches(fsa, "abc", ["ab", "bc", "ac"], False)
+    assert_matches(fsa, string, matches, ordered=False)
 
-def test_default_transition():
+
+@mark.parametrize('string, matches, outcomes', [
+    ("ab",    ["ab"],        ['error'],),
+    ("aab",   ["aab"],       ['error'],),
+    ("aaa",   ["aaa"],       ['finish']),
+    ("aaab",  ["aaa"],       ['finish']),
+    ("aaaab", ["aaa", "ab"], ['finish', 'error']),
+])
+class TestDefaultTransition:
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -228,19 +263,15 @@ def test_default_transition():
      .add_state("error", terminal=True)
      .check_structure()
     )
-    yield assert_outcomes, fsa, "ab", ['error']
-    yield assert_outcomes, fsa, "aab", ['error']
-    yield assert_outcomes, fsa, "aaa", ['finish']
-    yield assert_outcomes, fsa, "aaab", ['finish']
-    yield assert_outcomes, fsa, "aaaab", ['finish', 'error']
-    yield assert_matches, fsa, "ab", ["ab"]
-    yield assert_matches, fsa, "aab", ["aab"]
-    yield assert_matches, fsa, "aaa", ["aaa"]
-    yield assert_matches, fsa, "aaab", ["aaa"]
-    yield assert_matches, fsa, "aaaab", ["aaa", "ab"]
+
+    def test_outcomes(self, string, matches, outcomes):
+        assert_outcomes(self.fsa, string, outcomes)
+
+    def test_matches(self, string, matches, outcomes):
+        assert_matches(self.fsa, string, matches)
 
 
-def test_default_transition_overlap():
+class TestDefaultTransitionOverlap:
     fsa = FSA.make_empty(allow_overlap=True)
     (fsa
      .add_state("start")
@@ -253,16 +284,30 @@ def test_default_transition_overlap():
      .add_state("error", terminal=True)
      .check_structure()
     )
-    yield assert_outcomes, fsa, "ab", ['error']
-    yield assert_outcomes, fsa, "aab", ['error', 'error']
-    yield assert_outcomes, fsa, "aaa", ['finish']
-    yield assert_outcomes, fsa, "aaab", ['finish', 'error', 'error']
-    yield assert_outcomes, fsa, "aaaab", ['finish', 'finish', 'error', 'error']
-    yield assert_matches, fsa, "ab", ["ab"]
-    yield assert_matches, fsa, "aab", ["ab", "aab"], False
+
+    @mark.parametrize("string, outcomes", [
+        ("ab",    ['error']),
+        ("aab",   ['error', 'error']),
+        ("aaa",   ['finish']),
+        ("aaab",  ['finish', 'error', 'error']),
+        ("aaaab", ['finish', 'finish', 'error', 'error']),
+    ])
+    def test_outcomes(self, string, outcomes):
+        assert_outcomes(self.fsa, string, outcomes)
+
+    @mark.parametrize("string, matches", [
+        ("ab",  ["ab"]),
+        ("aab", ["ab", "aab"]),
+    ])
+    def test_matches(self, string, matches):
+        assert_matches(self.fsa, string, matches, ordered=False)
 
 
-def test_silent_default_transition():
+@mark.parametrize("string, matches", [
+    ("ab",  ["a"]),
+    ("aab", ["aa"]),
+])
+def test_silent_default_transition(string, matches):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -275,11 +320,10 @@ def test_silent_default_transition():
      .add_state("error", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "ab", ["a"]
-    yield assert_matches, fsa, "aab", ["aa"]
+    assert_matches(fsa, string, matches)
 
 
-def test_silent_default_transition_loop():
+class TestSilentDefaultTransitionLoop:
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -289,12 +333,14 @@ def test_silent_default_transition_loop():
      .add_state("finish", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "abba", ["aa"]
-    tokens = fsa.feed_all("abba")
-    if tokens:
-        yield assert_equal, ['s1'], tokens[0]['history_states']
-    else:
-        yield assert_equal, 1, len(tokens) # fail because tokens is empty
+
+    def test_matches(self):
+        assert_matches(self.fsa, "abba", ["aa"])
+
+    def test_history_states(self):
+        tokens = self.fsa.feed_all("abba")
+        assert len(tokens) == 1
+        assert ['s1'] == tokens[0]['history_states']
 
 
 def test_immediate_match():
@@ -308,7 +354,7 @@ def test_immediate_match():
      .check_structure()
     )
     tokens = fsa.feed_all("ab", finish=False)
-    assert_equal(1, len(tokens))
+    assert 1 == len(tokens)
 
 
 def test_differ_match():
@@ -323,16 +369,31 @@ def test_differ_match():
      .check_structure()
     )
     tokens = fsa.feed_all("ab", finish=False)
-    assert_equal(0, len(tokens))
+    assert 0 == len(tokens)
     tokens = fsa.feed("c")
-    assert_equal(0, len(tokens))
+    assert 0 == len(tokens)
     tokens = fsa.feed("c")
-    assert_equal(0, len(tokens))
+    assert 0 == len(tokens)
     tokens = fsa.finish()
-    assert_equal(1, len(tokens))
+    assert 1 == len(tokens)
 
 
-def test_differ_match_tricky():
+@mark.parametrize("string, matches, ordered", [
+    ("ab", ["ab"], True),
+    ("abc", ["ab"], True),
+    ("abcd", ["abcd"], True),
+    ("abcde", ["abcd"], True),
+    ("abcdef", ["abcdef"], True),
+    ("abcdefh", ["abcdef", "abch"], False),
+    ("abcdefz", ["abcdef"], True),
+    ("abcdh", ["abcd", "abch"], False),
+    ("abcdhef", ["abcd", "abch"], False),
+    ("abcdz", ["abcd"], True),
+    ("abce", ["ab"], True),
+    ("abch", ["abch"], True),
+    ("abchd", ["abch"], True),
+])
+def test_differ_match_tricky(string, matches, ordered):
     fsa = FSA.make_empty(allow_overlap=True)
     (fsa
      .add_state("start")
@@ -355,19 +416,7 @@ def test_differ_match_tricky():
      .add_state("s8f", terminal=True)
      .check_structure()
     )
-    yield assert_matches, fsa, "ab", ["ab"]
-    yield assert_matches, fsa, "abc", ["ab"]
-    yield assert_matches, fsa, "abcd", ["abcd"]
-    yield assert_matches, fsa, "abcde", ["abcd"]
-    yield assert_matches, fsa, "abcdef", ["abcdef"]
-    yield assert_matches, fsa, "abcdefh", ["abcdef", "abch"], False
-    yield assert_matches, fsa, "abcdefz", ["abcdef"]
-    yield assert_matches, fsa, "abcdh", ["abcd", "abch"], False
-    yield assert_matches, fsa, "abcdhef", ["abcd", "abch"], False
-    yield assert_matches, fsa, "abcdz", ["abcd"]
-    yield assert_matches, fsa, "abce", ["ab"]
-    yield assert_matches, fsa, "abch", ["abch"]
-    yield assert_matches, fsa, "abchd", ["abch"]
+    assert_matches(fsa, string, matches, ordered)
 
 
 def test_import_export_tokens():
@@ -392,19 +441,18 @@ def test_import_export_tokens():
 
 
 def test_examples():
-    dir = join(dirname(dirname(__file__)), "examples")
-    with open(join(dir, "structure.json")) as f:
+    folder = join(dirname(dirname(__file__)), "examples")
+    with open(join(folder, "structure.json")) as f:
         fsa = FSA.from_file(f)
-    yield assert_matches,  fsa, "daaad", ["dd", "aaad"], False
-    yield assert_outcomes, fsa, "daaad", ["success", "error"], False
+    gotm, goto = process(fsa, "daaad", False)
+    assert {"dd", "aaad"} == gotm
+    assert {"success", "error"} == goto
 
-    with open(join(dir, "tokens.json")) as f:
+    with open(join(folder, "tokens.json")) as f:
         fsa.load_tokens_from_file(f)
-    yield assert_matches,  fsa, "d", ["dd", "aaad"], False
+    assert {"dd", "aaad"} == gotm
+    assert {"success", "error"} == goto
 
-    with open(join(dir, "tokens.json")) as f:
-        fsa.load_tokens_from_file(f)
-    yield assert_outcomes, fsa, "d", ["success", "error"], False
 
 def test_default_matcher():
     fsa = FSA.make_empty()
@@ -425,6 +473,7 @@ def test_default_matcher():
     assert_matches(fsa, ["m"], ["m"])
     assert_matches(fsa, ["z"], ["z"])
 
+
 def test_simultaneous_matches():
     fsa = FSA.make_empty()
     (fsa
@@ -444,12 +493,13 @@ def test_simultaneous_matches():
     )
     fsa.allow_overlap = True
     matches = fsa.feed_all("abcd")
-    assert_equal(2, len(matches))
-    
+    assert 2 == len(matches)
+
     fsa.reset()
     fsa.allow_overlap = False
     matches = fsa.feed_all("abcd")
-    assert_equal(1, len(matches))
+    assert 1 == len(matches)
+
 
 def test_non_trivial_greedy():
     fsa = FSA.from_dict({
@@ -473,9 +523,10 @@ def test_non_trivial_greedy():
         }
     })
     matches = fsa.feed_all("abbb")
-    assert_equal(1, len(matches))
-    assert_equal(["a", "b", "b", "b"], matches[0]['history_events'])
-    
+    assert 1 == len(matches)
+    assert ["a", "b", "b", "b"] == matches[0]['history_events']
+
+
 def test_even_less_trivial_greedy():
     fsa = FSA.from_dict({
         "allow_overlap": True,
@@ -501,10 +552,11 @@ def test_even_less_trivial_greedy():
         }
     })
     matches = fsa.feed_all("abbb")
-    assert_equal(2, len(matches))
+    assert 2 == len(matches)
     histories = [ m['history_events'] for m in matches ]
     assert ["a"] in histories
     assert ["a", "b", "b", "b"] in histories
+
 
 def test_redundant_paths():
     fsa = FSA.from_dict({
@@ -532,9 +584,26 @@ def test_redundant_paths():
         }
     })
     matches = fsa.feed_all("ab")
-    assert_equal(1, len(matches))
+    assert 1 == len(matches)
 
-def test_a_b_star_with_timestamps():
+
+@mark.parametrize("string, matches, ordered, timestamps", [
+    ("a", ["a"], True, [1]),
+    ("aa", ["a", "a"], True, [1, 3]),
+    ("ab", ["ab"], True, [1, 3]),
+    ("abb", ["abb"], True, [3, 5, 8]),
+    ("abbb", ["abbb"], True, [13, 21, 34, 45]),
+    ("c", [], True, [79]),
+    ("ac", ["a"], True, [1, 3]),
+    ("abc", ["ab"], True, [3, 5, 8]),
+    ("abbc", ["abb"], True, [13, 21, 34, 45]),
+    ("ca", ["a"], True, [3, 5]),
+    ("cab", ["ab"], True, [5, 8, 13, 21]),
+    ("cabb", ["abb"], True, [34, 45, 79, 124]),
+    ("abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]),
+    ("abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]),
+])
+def test_a_b_star_with_timestamps(string, matches, ordered, timestamps):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -543,22 +612,26 @@ def test_a_b_star_with_timestamps():
        .add_transition("b", "finish")
      .check_structure()
     )
-    yield assert_matches, fsa, "a", ["a"], True, [1]
-    yield assert_matches, fsa, "aa", ["a", "a"], True, [1, 3]
-    yield assert_matches, fsa, "ab", ["ab"], True, [1, 3]
-    yield assert_matches, fsa, "abb", ["abb"], True, [3, 5, 8]
-    yield assert_matches, fsa, "abbb", ["abbb"], True, [13, 21, 34, 45]
-    yield assert_matches, fsa, "c", [], True, [79]
-    yield assert_matches, fsa, "ac", ["a"], True, [1, 3]
-    yield assert_matches, fsa, "abc", ["ab"], True, [3, 5, 8]
-    yield assert_matches, fsa, "abbc", ["abb"], True, [13, 21, 34, 45]
-    yield assert_matches, fsa, "ca", ["a"], True, [3, 5]
-    yield assert_matches, fsa, "cab", ["ab"], True, [5, 8, 13, 21]
-    yield assert_matches, fsa, "cabb", ["abb"], True, [34, 45, 79, 124]
-    yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
-    yield assert_matches, fsa, "abbabbb", ["abb", "abbb"], True, [1,3,5,7,9,11,13]
+    assert_matches(fsa, string, matches, ordered, timestamps)
 
-def test_a_b_star_with_max_total_duration():
+
+@mark.parametrize("assert_matches_args", [
+    ("a", ["a"]),
+    ("aa", ["a", "a"]),
+    ("ab", ["ab"]),
+    ("abb", ["abb"]),
+    ("abbb", ["abb"]),
+    ("c", []),
+    ("ac", ["a"]),
+    ("abc", ["ab"]),
+    ("abbc", ["abb"]),
+    ("ca", ["a"]),
+    ("cab", ["ab"]),
+    ("cabb", ["abb"]),
+    ("abbabbb", ["abb", "abb"]),
+    ("ab", ["a"], True, [1, 4]),
+])
+def test_a_b_star_with_max_total_duration(assert_matches_args):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -567,22 +640,17 @@ def test_a_b_star_with_max_total_duration():
        .add_transition("b", "finish")
      .check_structure()
     )
-    yield assert_matches, fsa, "a", ["a"]
-    yield assert_matches, fsa, "aa", ["a", "a"]
-    yield assert_matches, fsa, "ab", ["ab"]
-    yield assert_matches, fsa, "abb", ["abb"]
-    yield assert_matches, fsa, "abbb", ["abb"]
-    yield assert_matches, fsa, "c", []
-    yield assert_matches, fsa, "ac", ["a"]
-    yield assert_matches, fsa, "abc", ["ab"]
-    yield assert_matches, fsa, "abbc", ["abb"]
-    yield assert_matches, fsa, "ca", ["a"]
-    yield assert_matches, fsa, "cab", ["ab"]
-    yield assert_matches, fsa, "cabb", ["abb"]
-    yield assert_matches, fsa, "abbabbb", ["abb", "abb"]
-    yield assert_matches, fsa, "ab", ["a"], True, [1, 4]
+    assert_matches(fsa, *assert_matches_args)
 
-def test_a_b_star_with_state_max_duration():
+
+@mark.parametrize("string, matches, ordered, timestamps", [
+    ("a", ["a"], True, [1]),
+    ("aa", ["a", "a"], True, [1, 2]),
+    ("ab", ["ab"], True, [1, 3]),
+    ("abb", ["abb"], True, [1, 2, 3]),
+    ("abb", ["ab"], True, [1, 2, 5]),
+])
+def test_a_b_star_with_state_max_duration(string, matches, ordered, timestamps):
     fsa = FSA.make_empty()
     (fsa
      .add_state("start")
@@ -591,11 +659,8 @@ def test_a_b_star_with_state_max_duration():
        .add_transition("b", "finish")
      .check_structure()
     )
-    yield assert_matches, fsa, "a", ["a"], True, [1]
-    yield assert_matches, fsa, "aa", ["a", "a"], True, [1, 2]
-    yield assert_matches, fsa, "ab", ["ab"], True, [1, 3]
-    yield assert_matches, fsa, "abb", ["abb"], True, [1, 2, 3]
-    yield assert_matches, fsa, "abb", ["ab"], True, [1, 2, 5]
+    assert_matches(fsa, string, matches, ordered, timestamps)
+
 
 def test_negative_timestamp():
     fsa = FSA.make_empty()
@@ -606,7 +671,8 @@ def test_negative_timestamp():
        .add_transition("b", "finish")
      .check_structure()
     )
-    yield assert_matches, fsa, "ab", ["ab"], True, [-2, -1]
+    assert_matches(fsa, "ab", ["ab"], True, [-2, -1])
+
 
 def test_negative_timestamp_after_reset():
     fsa = FSA.make_empty()
@@ -619,7 +685,8 @@ def test_negative_timestamp_after_reset():
     )
     fsa.feed("a", 42)
     fsa.reset()
-    yield assert_matches, fsa, "ab", ["ab"], True, [-2, -1]
+    assert_matches(fsa, "ab", ["ab"], True, [-2, -1])
+
 
 def test_equal_timestamp():
     fsa = FSA.make_empty()
@@ -630,4 +697,4 @@ def test_equal_timestamp():
        .add_transition("b", "finish")
      .check_structure()
     )
-    yield assert_matches, fsa, "ab", ["ab"], True, [42, 42]
+    assert_matches(fsa, "ab", ["ab"], True, [42, 42])

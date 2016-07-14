@@ -18,7 +18,7 @@ class FSA(object):
     """A Finite State Automaton."""
 
     # FSA constuction
-    
+
     def __init__(self, structure, check_structure=True):
         """
         DON'T USE THIS CONSTRUCTOR DIRECTLY.
@@ -106,7 +106,7 @@ class FSA(object):
         if problems:
             raise ValueError("\n".join(problems))
         return problems
-                
+
 
     # access to structure
 

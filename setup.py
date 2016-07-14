@@ -24,7 +24,6 @@ setup(
     #url='TODO',
     platforms='OS Independant',
     install_requires = [],
-    tests_require = ["nose"],
-    test_loader = 'nose.loader:TestLoader',
-    test_suite='utests',
+    setup_requires = ["pytest-runner"],
+    tests_require = ["pytest"],
 )

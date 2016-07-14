@@ -1,10 +1,8 @@
-from nose.tools import eq_
-
 from fsa4streams import FSA
 
 class TestGlobalDefaults(object):
 
-    def setUp(self):
+    def setup(self):
         self.to_error = {'target': 'error'}
         self.fsa = FSA.make_empty()
         (self.fsa
@@ -20,19 +18,19 @@ class TestGlobalDefaults(object):
         )
 
     def test_default_max_noise(self):
-        eq_(0, self.fsa['start'].max_noise)
+        assert 0 == self.fsa['start'].max_noise
 
     def test_default_terminal(self):
-        eq_(False, self.fsa['start'].terminal)
+        assert False == self.fsa['start'].terminal
 
     def test_default_default_transition(self):
         assert self.fsa['start'].default_transition is None
 
     def test_overridden_max_noise(self):
-        eq_(7, self.fsa['s2'].max_noise)
+        assert 7 == self.fsa['s2'].max_noise
 
     def test_overridden_terminal(self):
-        eq_(True, self.fsa['finish'].terminal)
+        assert True == self.fsa['finish'].terminal
 
     def test_overridden_default_transition(self):
         assert self.fsa['s1'].default_transition is self.to_error
@@ -43,7 +41,7 @@ class TestLocalDefaults1(object):
     # as they are mutually incompatible.
     # So we have two variants of this test case.
 
-    def setUp(self):
+    def setup(self):
         self.defaults = {
             'max_noise': 7,
             'terminal': True,
@@ -61,21 +59,21 @@ class TestLocalDefaults1(object):
         )
 
     def test_default_max_noise(self):
-        eq_(7, self.fsa['s1'].max_noise)
+        assert 7 == self.fsa['s1'].max_noise
 
     def test_default_terminal(self):
-        eq_(True, self.fsa['s1'].terminal)
+        assert True == self.fsa['s1'].terminal
 
     def test_overridden_max_noise(self):
-        eq_(0, self.fsa['start'].max_noise)
+        assert 0 == self.fsa['start'].max_noise
 
     def test_overridden_terminal(self):
-        eq_(False, self.fsa['start'].terminal)
+        assert False == self.fsa['start'].terminal
 
 
 class TestLocalDefaults2(object):
 
-    def setUp(self):
+    def setup(self):
         self.defaults = {
             'default_transition': {
                 'target': 'error'

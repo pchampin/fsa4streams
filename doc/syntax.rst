@@ -117,7 +117,7 @@ Every state is represented by a JSON object, with the following attributes:
    It indicates the maximum in which the FSA will stay in this state.
    If no matching event occurs during this duration,
    the FSA will fail to match.
-   It defaults to in infinity: if no max duration is specified,
+   It defaults to infinity: if no max duration is specified,
    the FSA may stay an arbitrary long time in that state
    (in the limit imposed by `fsa.max_duration`:attr:).
 
@@ -127,7 +127,7 @@ Every state is represented by a JSON object, with the following attributes:
 
    This attribute is similar to `~state.max_duration`:attr: above,
    but instead of considering the duration since the automaton entered this state,
-   it considers the total duration since the automaton entered the ``start`` state.
+   it considers the total duration since the automaton left the ``start`` state.
    If it is unspecified, the automaton will accept any duration.
 
    This attribute is particularly useful on terminal states,

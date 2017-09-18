@@ -278,7 +278,6 @@ class FSA(object):
             oldstate = self[oldstateid]
 
             # delete token if a max_duration has expired
-            duration = timestamp-token['updated']
             if oldstate.max_total_duration \
             and timestamp-token['created'] > oldstate.max_total_duration \
             or oldstate.max_duration \

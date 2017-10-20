@@ -37,3 +37,19 @@ def test_issue_6_b():
      .check_structure()
     )
     assert_matches(fsa, "abcd", ["ac", "abd"])
+
+@skip('not fixed yet')
+def test_issue_6_c():
+    fsa = FSA.make_empty(allow_overlap=True)
+    (fsa
+     .add_state("start")
+       .add_transition("a", "s1", silent=True)
+     .add_state("s1")
+       .add_transition("b", "s2")
+     .add_state("s2")
+       .add_transition("c", "finish")
+     .add_state("finish", terminal=True)
+     .check_structure()
+    )
+    assert_matches(fsa, "dbc", [])
+    assert_matches(fsa, "dbcabcd", ["bc"])

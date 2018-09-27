@@ -42,9 +42,14 @@ def application(environ, start_response):
         "</html>".format(ex.__class__.__name__, ex.message)]
 
 if __name__ == "__main__":
-    from wsgiref.simple_server import make_server
-    HOST = "localhost"
-    PORT = 12345
-    HTTPD = make_server(HOST, PORT, application)
-    print "Listening on http://%s:%s/" % (HOST, PORT)
-    HTTPD.serve_forever()
+    import os
+    if os.environ.get("AS_WSGI"):
+        from wsgiref.simple_server import make_server
+        HOST = "localhost"
+        PORT = 12345
+        HTTPD = make_server(HOST, PORT, application)
+        print "Listening on http://%s:%s/" % (HOST, PORT)
+        HTTPD.serve_forever()
+    else:
+        from wsgiref.handlers import CGIHandler
+        CGIHandler().run(application)
